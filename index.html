@@ -1,0 +1,1244 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>マンジャロ・ダイエットサポート</title>
+<style>
+  :root {
+    --bg: #f4f7f6;
+    --card: #ffffff;
+    --primary: #2a9d8f;
+    --primary-dark: #21867a;
+    --accent: #e9c46a;
+    --danger: #e76f51;
+    --text: #2b3a39;
+    --sub: #6b7c7a;
+    --border: #e0e8e6;
+    --bot-bubble: #eef6f4;
+    --user-bubble: #2a9d8f;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+  }
+  header {
+    background: linear-gradient(135deg, #2a9d8f, #264653);
+    color: #fff;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  header h1 { font-size: 17px; font-weight: 600; }
+  header .sub { font-size: 11px; opacity: .85; }
+  .container { max-width: 760px; margin: 0 auto; padding: 12px 12px 90px; }
+
+  /* tabs */
+  nav {
+    display: flex;
+    gap: 6px;
+    max-width: 760px;
+    margin: 12px auto 0;
+    padding: 0 12px;
+  }
+  nav button {
+    flex: 1;
+    padding: 9px 4px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    border-radius: 10px;
+    font-size: 13px;
+    cursor: pointer;
+    color: var(--sub);
+    font-weight: 600;
+  }
+  nav button.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+  }
+  .tab { display: none; }
+  .tab.active { display: block; }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+    margin-top: 12px;
+  }
+  .card h2 { font-size: 15px; margin-bottom: 10px; color: var(--primary-dark); }
+  .card h3 { font-size: 13px; margin: 12px 0 6px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+  label { font-size: 12px; color: var(--sub); display: block; margin-bottom: 2px; }
+  input, select, textarea {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    background: #fff;
+    color: var(--text);
+    font-family: inherit;
+  }
+  input:focus, select:focus, textarea:focus { outline: 2px solid var(--primary); outline-offset: -1px; }
+  .btn {
+    display: inline-block;
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .btn:hover { background: var(--primary-dark); }
+  .btn.ghost { background: #fff; color: var(--primary-dark); border: 1px solid var(--primary); }
+  .btn.small { padding: 6px 12px; font-size: 12px; }
+  .note { font-size: 11px; color: var(--sub); margin-top: 8px; }
+  .badge {
+    display: inline-block;
+    background: var(--accent);
+    color: #5d4a12;
+    font-size: 11px;
+    padding: 1px 8px;
+    border-radius: 999px;
+    font-weight: 600;
+  }
+  .summary-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+  .stat {
+    flex: 1;
+    min-width: 100px;
+    background: var(--bot-bubble);
+    border-radius: 10px;
+    padding: 10px;
+    text-align: center;
+  }
+  .stat .v { font-size: 20px; font-weight: 700; color: var(--primary-dark); }
+  .stat .l { font-size: 11px; color: var(--sub); }
+
+  /* chat */
+  #chatLog { display: flex; flex-direction: column; gap: 10px; padding: 4px 0; }
+  .msg { max-width: 86%; padding: 10px 14px; border-radius: 14px; font-size: 14px; white-space: pre-wrap; }
+  .msg.bot { background: var(--bot-bubble); align-self: flex-start; border-bottom-left-radius: 4px; }
+  .msg.user { background: var(--user-bubble); color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
+  .msg .time { display: block; font-size: 10px; opacity: .6; margin-top: 4px; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; margin: 10px 0 6px; }
+  .chip {
+    border: 1px solid var(--border);
+    background: #fff;
+    border-radius: 999px;
+    padding: 5px 12px;
+    font-size: 12px;
+    cursor: pointer;
+    color: var(--sub);
+    font-weight: 600;
+  }
+  .chip.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+  .inputRow { display: flex; gap: 8px; margin-top: 6px; }
+  .inputRow textarea { resize: none; height: 64px; flex: 1; }
+  .inputRow .btn { align-self: flex-end; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
+  th, td { padding: 6px 8px; border-bottom: 1px solid var(--border); text-align: left; }
+  th { color: var(--sub); font-size: 11px; font-weight: 600; }
+  td .del { color: var(--danger); cursor: pointer; font-size: 12px; }
+
+  canvas { width: 100%; height: 220px; }
+  .disclaimer {
+    background: #fdf3ec;
+    border: 1px solid #f0d9c8;
+    color: #8a5a3b;
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 11.5px;
+    margin-top: 12px;
+  }
+  .flash { animation: flash .6s; }
+  @keyframes flash { 0% { background: #fff7df; } 100% { background: var(--card); } }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>マンジャロ・ダイエットサポート</h1>
+    <div class="sub">食事記録とアドバイスでダイエットを伴走します</div>
+  </div>
+  <div id="doseBadge" class="badge"></div>
+</header>
+
+<nav>
+  <button data-tab="chat" class="active">💬 記録・相談</button>
+  <button data-tab="menu">🍳 献立</button>
+  <button data-tab="profile">👤 基本データ</button>
+  <button data-tab="blood">🩸 血液検査</button>
+  <button data-tab="history">📈 推移・履歴</button>
+</nav>
+
+<div class="container">
+
+  <!-- ===== 記録・相談 ===== -->
+  <div class="tab active" id="tab-chat">
+    <div class="card">
+      <h2>今日のサマリー</h2>
+      <div class="summary-row">
+        <div class="stat"><div class="v" id="sumWeight">--</div><div class="l">最新体重 (kg)</div></div>
+        <div class="stat"><div class="v" id="sumBmi">--</div><div class="l">BMI</div></div>
+        <div class="stat"><div class="v" id="sumDiff">--</div><div class="l">開始からの変化 (kg)</div></div>
+        <div class="stat"><div class="v" id="sumDose">--</div><div class="l">マンジャロ (mg/週)</div></div>
+      </div>
+      <div style="display:flex; gap:8px; margin-top:12px; align-items:flex-end;">
+        <div style="flex:1;">
+          <label>今日の体重を記録 (kg)</label>
+          <input type="number" id="todayWeight" step="0.1" min="20" max="300" placeholder="例: 68.5">
+        </div>
+        <button class="btn small" onclick="logWeight()">体重を記録</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>食事・体調を記録して相談する</h2>
+      <div class="chips" id="mealChips">
+        <button class="chip" data-type="朝食">朝食</button>
+        <button class="chip" data-type="昼食">昼食</button>
+        <button class="chip" data-type="夕食">夕食</button>
+        <button class="chip" data-type="間食">間食</button>
+        <button class="chip" data-type="体調">体調メモ</button>
+      </div>
+      <div class="inputRow">
+        <textarea id="chatInput" placeholder="例: 昼はラーメンと餃子を食べました／少し吐き気があります"></textarea>
+        <button class="btn" onclick="sendChat()">送信</button>
+      </div>
+      <div id="chatLog" style="margin-top:14px;"></div>
+    </div>
+
+    <div class="disclaimer">
+      ⚠️ このアプリは医療機器・医療サービスではなく、一般的な食事・生活習慣の参考情報を提示するものです。
+      マンジャロの用量変更・体調不良（強い吐き気、嘔吐、腹痛、低血糖症状など）・治療方針については、必ず処方医・薬剤師に相談してください。
+    </div>
+  </div>
+
+  <!-- ===== 献立 ===== -->
+  <div class="tab" id="tab-menu">
+    <div class="card">
+      <h2>1週間の献立プラン</h2>
+      <p class="note" style="margin:0 0 10px;">マンジャロ使用中に合わせた「タンパク質しっかり・胃にやさしい」献立を提案します。血液検査の結果も反映されます。</p>
+      <button class="btn" onclick="generateMealPlan()">1週間の献立を作成する</button>
+      <div id="mealPlanNotes" style="margin-top:10px; font-size:13px; white-space:pre-wrap;"></div>
+      <div id="mealPlanTable"></div>
+    </div>
+    <div class="card">
+      <h2>献立の買い物リスト</h2>
+      <p class="note" style="margin:0 0 10px;">上の献立プランに必要な材料の一覧です。</p>
+      <div id="shoppingList"><p class="note">献立を作成すると、ここに買い物リストが表示されます。</p></div>
+    </div>
+    <div class="card">
+      <h2>📷 冷蔵庫の写真から買い物リストを作る（AI）</h2>
+      <p class="note" style="margin:0 0 10px;">冷蔵庫の中身を撮影してアップロードすると、AIが中身を読み取り、献立プランと照らし合わせて「買い足すものリスト」を作ります。※「基本データ」タブのAI設定が必要です（無料のGeminiキーが使えます）。</p>
+      <input type="file" id="fridgePhoto" accept="image/*">
+      <button class="btn small" style="margin-top:8px;" onclick="analyzeFridge()">写真を解析する</button>
+      <div id="fridgeStatus" class="note" style="margin-top:8px;"></div>
+      <div id="fridgeResult" style="font-size:14px; white-space:pre-wrap; margin-top:8px;"></div>
+    </div>
+  </div>
+
+  <!-- ===== 基本データ ===== -->
+  <div class="tab" id="tab-profile">
+    <div class="card">
+      <h2>基本データ</h2>
+      <div class="grid2">
+        <div><label>身長 (cm)</label><input type="number" id="pHeight" step="0.1" placeholder="165"></div>
+        <div><label>開始時体重 (kg)</label><input type="number" id="pStartWeight" step="0.1" placeholder="75"></div>
+        <div><label>目標体重 (kg)</label><input type="number" id="pTargetWeight" step="0.1" placeholder="60"></div>
+        <div><label>年齢</label><input type="number" id="pAge" placeholder="40"></div>
+        <div>
+          <label>性別</label>
+          <select id="pGender">
+            <option value="">選択してください</option>
+            <option value="女性">女性</option>
+            <option value="男性">男性</option>
+            <option value="その他">その他・回答しない</option>
+          </select>
+        </div>
+        <div>
+          <label>マンジャロ投与量 (週1回)</label>
+          <select id="pDose">
+            <option value="">選択してください</option>
+            <option value="2.5">2.5 mg</option>
+            <option value="5">5 mg</option>
+            <option value="7.5">7.5 mg</option>
+            <option value="10">10 mg</option>
+            <option value="12.5">12.5 mg</option>
+            <option value="15">15 mg</option>
+          </select>
+        </div>
+        <div><label>マンジャロ開始日</label><input type="date" id="pStartDate"></div>
+        <div><label>注射する曜日</label>
+          <select id="pInjectDay">
+            <option value="">選択してください</option>
+            <option>月曜日</option><option>火曜日</option><option>水曜日</option>
+            <option>木曜日</option><option>金曜日</option><option>土曜日</option><option>日曜日</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-top:14px;"><button class="btn" onclick="saveProfile()">保存する</button></div>
+      <p class="note">投与量は医師の処方どおりに入力してください。このアプリが用量を提案することはありません。</p>
+    </div>
+    <div class="card">
+      <h2>⚙️ AI設定（写真解析を使う場合）</h2>
+      <p class="note" style="margin:0 0 10px;">
+        「冷蔵庫の写真から買い物リスト」「検査結果の写真から自動入力」の2機能はAIを使います。どちらかを選んでください。
+      </p>
+      <label>使うAI</label>
+      <select id="aiProvider" onchange="renderApiKeyStatus()">
+        <option value="gemini">Google Gemini（無料枠あり・おすすめ）</option>
+        <option value="claude">Claude（有料・高精度）</option>
+      </select>
+      <div id="geminiGuide" class="note" style="margin-top:8px;">
+        📌 無料キーの取り方: <a href="https://aistudio.google.com/" target="_blank" rel="noopener">aistudio.google.com</a> にGoogleアカウントでログイン →「Get API key（APIキーを取得）」→ 作成されたキーをコピーして下に貼り付け。
+        クレジットカード登録は不要で、無料枠（1日250回まで）の範囲なら料金はかかりません。
+      </div>
+      <div id="claudeGuide" class="note" style="display:none; margin-top:8px;">
+        📌 <a href="https://platform.claude.com/" target="_blank" rel="noopener">platform.claude.com</a> で取得したAPIキーを貼り付けてください。解析1回あたり数円程度の利用料がかかります。
+      </div>
+      <div style="margin-top:10px;">
+        <label>APIキー</label>
+        <input type="password" id="apiKeyInput" placeholder="取得したAPIキーを貼り付け">
+      </div>
+      <div style="margin-top:10px;">
+        <button class="btn small" onclick="saveApiKey()">キーを保存</button>
+        <button class="btn ghost small" onclick="clearApiKey()">このAIのキーを削除</button>
+        <span id="apiKeyStatus" class="note" style="margin-left:8px;"></span>
+      </div>
+      <p class="note" style="margin-top:10px;">
+        キーはこの端末のブラウザ内にのみ保存され、選んだAIの公式API以外には送信されません（バックアップのエクスポートにも含まれません）。
+        家族や友達とアプリを共有する場合も、キーは各自で取得してください。
+      </p>
+    </div>
+  </div>
+
+  <!-- ===== 血液検査 ===== -->
+  <div class="tab" id="tab-blood">
+    <div class="card">
+      <h2>📷 検査結果の写真から自動入力（AI）</h2>
+      <p class="note" style="margin:0 0 10px;">血液検査の結果用紙を撮影してアップロードすると、AIが数値を読み取って下のフォームに自動入力します。読み取り結果は必ず原本と見比べてから保存してください。※「基本データ」タブのAI設定が必要です（無料のGeminiキーが使えます）。</p>
+      <input type="file" id="bloodPhoto" accept="image/*">
+      <button class="btn small" style="margin-top:8px;" onclick="analyzeBloodPhoto()">写真から読み取る</button>
+      <div id="bloodPhotoStatus" class="note" style="margin-top:8px;"></div>
+    </div>
+    <div class="card">
+      <h2>血液検査データを登録</h2>
+      <p class="note" style="margin:0 0 10px;">わかる項目だけ入力すればOKです。最新の検査結果がアドバイスに反映されます。</p>
+      <div class="grid3">
+        <div><label>検査日</label><input type="date" id="bDate"></div>
+        <div><label>HbA1c (%)</label><input type="number" id="bHba1c" step="0.1" placeholder="5.8"></div>
+        <div><label>空腹時血糖 (mg/dL)</label><input type="number" id="bGlucose" placeholder="95"></div>
+        <div><label>LDLコレステロール</label><input type="number" id="bLdl" placeholder="120"></div>
+        <div><label>HDLコレステロール</label><input type="number" id="bHdl" placeholder="60"></div>
+        <div><label>中性脂肪 (TG)</label><input type="number" id="bTg" placeholder="100"></div>
+        <div><label>AST (GOT)</label><input type="number" id="bAst" placeholder="25"></div>
+        <div><label>ALT (GPT)</label><input type="number" id="bAlt" placeholder="25"></div>
+        <div><label>γ-GTP</label><input type="number" id="bGgtp" placeholder="30"></div>
+        <div><label>クレアチニン</label><input type="number" id="bCre" step="0.01" placeholder="0.7"></div>
+        <div><label>eGFR</label><input type="number" id="bEgfr" step="0.1" placeholder="80"></div>
+        <div><label>尿酸 (UA)</label><input type="number" id="bUa" step="0.1" placeholder="5.5"></div>
+      </div>
+      <div style="margin-top:14px;"><button class="btn" onclick="saveBlood()">検査結果を保存</button></div>
+    </div>
+    <div class="card">
+      <h2>登録済みの検査結果</h2>
+      <div id="bloodList"></div>
+    </div>
+    <div class="card">
+      <h2>最新の検査結果からのアドバイス</h2>
+      <div id="bloodAdvice" style="font-size:14px; white-space:pre-wrap;">血液検査データを登録すると、ここにアドバイスが表示されます。</div>
+    </div>
+  </div>
+
+  <!-- ===== 推移・履歴 ===== -->
+  <div class="tab" id="tab-history">
+    <div class="card">
+      <h2>体重の推移</h2>
+      <canvas id="weightChart" width="700" height="220"></canvas>
+      <div id="weightTable"></div>
+    </div>
+    <div class="card">
+      <h2>データの保存・引っ越し</h2>
+      <p class="note" style="margin-bottom:10px;">データはこの端末のブラウザ内にのみ保存されます（外部送信なし）。バックアップや別端末への移行にはエクスポートを使ってください。</p>
+      <button class="btn ghost small" onclick="exportData()">エクスポート (JSON)</button>
+      <button class="btn ghost small" onclick="document.getElementById('importFile').click()">インポート</button>
+      <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+    </div>
+  </div>
+
+</div>
+
+<script>
+"use strict";
+
+/* ========== データ管理 ========== */
+const STORE_KEY = "mounjaroSupportApp";
+let db = {
+  profile: {},
+  bloodTests: [],
+  weights: [],
+  chat: [],
+  mealPlan: null
+};
+const API_KEY_STORE = "mounjaroSupportApiKey"; // dbとは別管理（エクスポートに含めない）
+
+function load() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (raw) db = Object.assign(db, JSON.parse(raw));
+  } catch (e) { console.warn("load failed", e); }
+}
+function save() {
+  localStorage.setItem(STORE_KEY, JSON.stringify(db));
+}
+function today() {
+  const d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+function nowTime() {
+  const d = new Date();
+  return (d.getMonth() + 1) + "/" + d.getDate() + " " + String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+}
+
+/* ========== タブ切り替え ========== */
+document.querySelectorAll("nav button").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll("nav button").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById("tab-" + btn.dataset.tab).classList.add("active");
+    if (btn.dataset.tab === "history") drawChart();
+  });
+});
+
+/* ========== 基本データ ========== */
+function saveProfile() {
+  db.profile = {
+    height: parseFloat(document.getElementById("pHeight").value) || null,
+    startWeight: parseFloat(document.getElementById("pStartWeight").value) || null,
+    targetWeight: parseFloat(document.getElementById("pTargetWeight").value) || null,
+    age: parseInt(document.getElementById("pAge").value) || null,
+    gender: document.getElementById("pGender").value,
+    dose: document.getElementById("pDose").value,
+    startDate: document.getElementById("pStartDate").value,
+    injectDay: document.getElementById("pInjectDay").value
+  };
+  save();
+  renderSummary();
+  addBotMsg("基本データを保存しました。" + (db.profile.dose ? `現在の投与量はマンジャロ ${db.profile.dose}mg（週1回）ですね。` : "") + "食事を記録すると、あなたに合わせたアドバイスをお返しします。");
+  alert("基本データを保存しました");
+}
+function fillProfileForm() {
+  const p = db.profile;
+  if (p.height) document.getElementById("pHeight").value = p.height;
+  if (p.startWeight) document.getElementById("pStartWeight").value = p.startWeight;
+  if (p.targetWeight) document.getElementById("pTargetWeight").value = p.targetWeight;
+  if (p.age) document.getElementById("pAge").value = p.age;
+  if (p.gender) document.getElementById("pGender").value = p.gender;
+  if (p.dose) document.getElementById("pDose").value = p.dose;
+  if (p.startDate) document.getElementById("pStartDate").value = p.startDate;
+  if (p.injectDay) document.getElementById("pInjectDay").value = p.injectDay;
+}
+
+/* ========== 体重 ========== */
+function latestWeight() {
+  if (db.weights.length === 0) return db.profile.startWeight || null;
+  return db.weights[db.weights.length - 1].kg;
+}
+function logWeight() {
+  const v = parseFloat(document.getElementById("todayWeight").value);
+  if (!v || v < 20 || v > 300) { alert("体重を正しく入力してください"); return; }
+  const t = today();
+  const existing = db.weights.find(w => w.date === t);
+  if (existing) existing.kg = v; else db.weights.push({ date: t, kg: v });
+  db.weights.sort((a, b) => a.date.localeCompare(b.date));
+  save();
+  document.getElementById("todayWeight").value = "";
+  renderSummary();
+  renderWeightTable();
+
+  let msg = `体重 ${v}kg を記録しました。`;
+  const p = db.profile;
+  if (p.startWeight) {
+    const diff = (v - p.startWeight).toFixed(1);
+    if (diff < 0) msg += `開始時から ${Math.abs(diff)}kg 減っています。素晴らしいペースです！`;
+    else if (diff == 0) msg += `開始時と同じです。焦らずいきましょう。`;
+    else msg += `開始時より ${diff}kg 増えています。一時的な水分変動のことも多いので、数日の傾向で見ていきましょう。`;
+  }
+  if (p.targetWeight && v > p.targetWeight) {
+    msg += `目標まであと ${(v - p.targetWeight).toFixed(1)}kg です。`;
+  } else if (p.targetWeight && v <= p.targetWeight) {
+    msg += `🎉 目標体重を達成しています！維持期の食事に切り替えていきましょう。`;
+  }
+  msg += "\n体重が減っている時期こそ、筋肉量を守るためにタンパク質をしっかり摂ることが大切です。";
+  addBotMsg(msg);
+}
+
+/* ========== 血液検査 ========== */
+function saveBlood() {
+  const rec = {
+    date: document.getElementById("bDate").value || today(),
+    hba1c: parseFloat(document.getElementById("bHba1c").value) || null,
+    glucose: parseFloat(document.getElementById("bGlucose").value) || null,
+    ldl: parseFloat(document.getElementById("bLdl").value) || null,
+    hdl: parseFloat(document.getElementById("bHdl").value) || null,
+    tg: parseFloat(document.getElementById("bTg").value) || null,
+    ast: parseFloat(document.getElementById("bAst").value) || null,
+    alt: parseFloat(document.getElementById("bAlt").value) || null,
+    ggtp: parseFloat(document.getElementById("bGgtp").value) || null,
+    cre: parseFloat(document.getElementById("bCre").value) || null,
+    egfr: parseFloat(document.getElementById("bEgfr").value) || null,
+    ua: parseFloat(document.getElementById("bUa").value) || null
+  };
+  const hasValue = Object.keys(rec).some(k => k !== "date" && rec[k] !== null);
+  if (!hasValue) { alert("少なくとも1つの検査値を入力してください"); return; }
+  db.bloodTests.push(rec);
+  db.bloodTests.sort((a, b) => a.date.localeCompare(b.date));
+  save();
+  ["bDate","bHba1c","bGlucose","bLdl","bHdl","bTg","bAst","bAlt","bGgtp","bCre","bEgfr","bUa"].forEach(id => document.getElementById(id).value = "");
+  renderBloodList();
+  renderBloodAdvice();
+  addBotMsg("血液検査データを登録しました。「血液検査」タブに検査値に基づくアドバイスを表示しています。今後の食事アドバイスにも反映します。");
+  alert("検査結果を保存しました");
+}
+function deleteBlood(i) {
+  if (!confirm("この検査結果を削除しますか？")) return;
+  db.bloodTests.splice(i, 1);
+  save();
+  renderBloodList();
+  renderBloodAdvice();
+}
+function renderBloodList() {
+  const el = document.getElementById("bloodList");
+  if (db.bloodTests.length === 0) { el.innerHTML = '<p class="note">まだ検査結果が登録されていません。</p>'; return; }
+  let html = '<table><tr><th>検査日</th><th>HbA1c</th><th>血糖</th><th>LDL</th><th>HDL</th><th>TG</th><th>ALT</th><th>eGFR</th><th></th></tr>';
+  db.bloodTests.forEach((b, i) => {
+    html += `<tr><td>${b.date}</td><td>${b.hba1c ?? "-"}</td><td>${b.glucose ?? "-"}</td><td>${b.ldl ?? "-"}</td><td>${b.hdl ?? "-"}</td><td>${b.tg ?? "-"}</td><td>${b.alt ?? "-"}</td><td>${b.egfr ?? "-"}</td><td><span class="del" onclick="deleteBlood(${i})">削除</span></td></tr>`;
+  });
+  html += "</table>";
+  el.innerHTML = html;
+}
+
+function bloodFindings(b) {
+  // 一般的な基準値の目安に基づくコメント（診断ではない）
+  const out = [];
+  if (b.hba1c != null) {
+    if (b.hba1c >= 6.5) out.push({ key: "hba1c", level: "high", text: `HbA1cが ${b.hba1c}% とやや高めです。白米・パン・麺などの糖質は「最初に野菜・タンパク質を食べてから」を習慣にし、ジュースや菓子類は控えめにしましょう。` });
+    else if (b.hba1c >= 5.6) out.push({ key: "hba1c", level: "mid", text: `HbA1cが ${b.hba1c}% と境界域です。食べる順番（野菜→タンパク質→糖質）と間食の見直しが効果的です。` });
+  }
+  if (b.glucose != null && b.glucose >= 110) out.push({ key: "glucose", level: "high", text: `空腹時血糖が ${b.glucose}mg/dL と高めです。夜遅い食事や甘い飲み物を減らすことから始めましょう。` });
+  if (b.ldl != null && b.ldl >= 140) out.push({ key: "ldl", level: "high", text: `LDLコレステロールが ${b.ldl}mg/dL と高めです。バター・脂身の多い肉・揚げ物を減らし、青魚（さば・いわし）・大豆製品・食物繊維を増やすのがおすすめです。` });
+  if (b.hdl != null && b.hdl < 40) out.push({ key: "hdl", level: "low", text: `HDLコレステロールが ${b.hdl}mg/dL と低めです。適度な運動（早歩きなど）が改善に役立ちます。` });
+  if (b.tg != null && b.tg >= 150) out.push({ key: "tg", level: "high", text: `中性脂肪が ${b.tg}mg/dL と高めです。甘い物・果物の摂りすぎ・アルコールが影響しやすい項目です。減量が進むと改善しやすいので、一緒に頑張りましょう。` });
+  if ((b.ast != null && b.ast > 40) || (b.alt != null && b.alt > 40)) out.push({ key: "liver", level: "high", text: `肝機能（AST/ALT）が基準値を超えています。脂肪肝の可能性もあるため、揚げ物・アルコール・果糖（ジュース）を控えめに。減量自体が肝機能改善につながります。` });
+  if (b.ggtp != null && b.ggtp > 70) out.push({ key: "ggtp", level: "high", text: `γ-GTPが ${b.ggtp} と高めです。飲酒の頻度・量を見直してみましょう。` });
+  if (b.egfr != null && b.egfr < 60) out.push({ key: "kidney", level: "high", text: `eGFRが ${b.egfr} と低下傾向です。腎臓に負担をかけないよう、タンパク質や塩分の量は自己判断で増やさず、必ず主治医に食事内容を相談してください。` });
+  if (b.ua != null && b.ua > 7.0) out.push({ key: "ua", level: "high", text: `尿酸値が ${b.ua}mg/dL と高めです。レバー・干物・ビールなどプリン体の多いものを控え、水分をしっかり摂りましょう。急激な減量も尿酸値を上げることがあるため、ペースは緩やかに。` });
+  return out;
+}
+function latestBlood() {
+  return db.bloodTests.length ? db.bloodTests[db.bloodTests.length - 1] : null;
+}
+function renderBloodAdvice() {
+  const el = document.getElementById("bloodAdvice");
+  const b = latestBlood();
+  if (!b) { el.textContent = "血液検査データを登録すると、ここにアドバイスが表示されます。"; return; }
+  const f = bloodFindings(b);
+  let text = `📋 ${b.date} の検査結果に基づくアドバイス\n\n`;
+  if (f.length === 0) {
+    text += "登録された項目は、いずれも一般的な基準値の範囲内です。この調子で続けましょう！\n";
+  } else {
+    f.forEach(x => { text += "・" + x.text + "\n\n"; });
+  }
+  text += "\n※ 一般的な基準値の目安に基づく参考情報です。検査結果の解釈・治療は必ず主治医にご確認ください。";
+  el.textContent = text;
+}
+
+/* ========== チャット ========== */
+let selectedType = null;
+document.querySelectorAll("#mealChips .chip").forEach(c => {
+  c.addEventListener("click", () => {
+    document.querySelectorAll("#mealChips .chip").forEach(x => x.classList.remove("active"));
+    c.classList.add("active");
+    selectedType = c.dataset.type;
+  });
+});
+function guessMealType() {
+  const h = new Date().getHours();
+  if (h < 10) return "朝食";
+  if (h < 15) return "昼食";
+  if (h < 21) return "夕食";
+  return "間食";
+}
+
+function addMsg(role, text) {
+  db.chat.push({ role, text, time: nowTime() });
+  if (db.chat.length > 300) db.chat = db.chat.slice(-300);
+  save();
+  renderChat();
+}
+function addBotMsg(text) { addMsg("bot", text); }
+
+function renderChat() {
+  const log = document.getElementById("chatLog");
+  log.innerHTML = "";
+  db.chat.forEach(m => {
+    const d = document.createElement("div");
+    d.className = "msg " + m.role;
+    d.textContent = m.text;
+    const t = document.createElement("span");
+    t.className = "time";
+    t.textContent = m.time;
+    d.appendChild(t);
+    log.appendChild(d);
+  });
+  log.lastElementChild?.scrollIntoView({ block: "nearest" });
+}
+
+function sendChat() {
+  const input = document.getElementById("chatInput");
+  const text = input.value.trim();
+  if (!text) return;
+  const type = selectedType || (looksLikeSymptom(text) ? "体調" : guessMealType());
+  addMsg("user", `【${type}】${text}`);
+  input.value = "";
+  document.querySelectorAll("#mealChips .chip").forEach(x => x.classList.remove("active"));
+  selectedType = null;
+  setTimeout(() => addBotMsg(generateAdvice(type, text)), 350);
+}
+document.getElementById("chatInput").addEventListener("keydown", e => {
+  if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) sendChat();
+});
+
+/* ========== アドバイスエンジン ========== */
+const KW = {
+  protein: ["肉", "鶏", "豚", "牛", "ささみ", "魚", "鮭", "さば", "サバ", "いわし", "まぐろ", "刺身", "卵", "たまご", "豆腐", "納豆", "大豆", "ヨーグルト", "チーズ", "プロテイン", "えび", "ツナ", "ハム", "サラダチキン", "焼き鳥", "しゃぶしゃぶ"],
+  veg: ["野菜", "サラダ", "ほうれん草", "ブロッコリー", "キャベツ", "レタス", "トマト", "きのこ", "海藻", "わかめ", "もずく", "ひじき", "ごぼう", "おひたし", "青菜", "味噌汁", "スープ", "副菜"],
+  fried: ["揚げ", "フライ", "唐揚げ", "から揚げ", "カラアゲ", "天ぷら", "カツ", "とんかつ", "ポテト", "フライドポテト", "コロッケ", "天丼", "かつ丼"],
+  heavy: ["ラーメン", "二郎", "焼肉", "ピザ", "ハンバーガー", "カルボナーラ", "バター", "マヨ", "こってり", "背脂"],
+  sweet: ["ケーキ", "菓子", "チョコ", "アイス", "ジュース", "甘い", "クッキー", "菓子パン", "プリン", "大福", "ドーナツ", "パフェ", "タピオカ", "コーラ", "シュークリーム", "クレープ", "和菓子"],
+  carb: ["ご飯", "ごはん", "白米", "おにぎり", "パン", "麺", "うどん", "そば", "パスタ", "丼", "カレー", "チャーハン", "餅", "餃子", "お好み焼き", "たこ焼き"],
+  alcohol: ["ビール", "酒", "ワイン", "ハイボール", "チューハイ", "焼酎", "日本酒", "カクテル", "飲み会", "梅酒", "レモンサワー"],
+  light: ["少しだけ", "半分", "食べられなかった", "食欲がない", "食欲ない", "残した", "ゼリーだけ", "スープだけ", "少量"]
+};
+const SYMPTOM_KW = {
+  nausea: ["吐き気", "むかむか", "ムカムカ", "気持ち悪", "嘔吐", "吐いた"],
+  constipation: ["便秘", "お通じ", "出ない"],
+  diarrhea: ["下痢", "お腹を下", "腹を下", "ゆるい"],
+  fatigue: ["だるい", "倦怠感", "疲れ", "ふらふら", "めまい", "力が入らない"],
+  hypo: ["低血糖", "冷や汗", "手の震え", "動悸"],
+  stomach: ["胃が痛", "腹痛", "胃もたれ", "膨満", "張る"]
+};
+function hit(text, list) { return list.some(k => text.includes(k)); }
+function looksLikeSymptom(text) {
+  return Object.values(SYMPTOM_KW).some(list => hit(text, list));
+}
+function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+const NEXT_MEAL = {
+  protein: ["サラダチキンや焼き魚", "豆腐と卵のスープ", "鶏むね肉のグリル", "納豆と卵かけご飯（ご飯は少なめ）", "さばの塩焼き"],
+  veg: ["具だくさんの味噌汁", "蒸し野菜やサラダ", "きのこと海藻のスープ", "野菜たっぷりの鍋"],
+  light: ["おかゆと温泉卵", "茶碗蒸し", "豆腐入りの雑炊", "バナナとヨーグルト"]
+};
+
+function generateAdvice(type, text) {
+  const p = db.profile;
+  const parts = [];
+
+  /* --- 体調メモ or 症状検出 --- */
+  const symptoms = [];
+  for (const [key, list] of Object.entries(SYMPTOM_KW)) if (hit(text, list)) symptoms.push(key);
+  if (symptoms.length > 0) {
+    if (symptoms.includes("nausea")) parts.push("吐き気はマンジャロで比較的よくある症状です。対策として、①1回の食事量を減らして回数を分ける、②脂っこいもの・甘いものを避ける、③食後すぐ横にならない、④水分をこまめに摂る、が有効とされています。嘔吐が続く・水分も摂れない場合は、早めに処方医に連絡してください。");
+    if (symptoms.includes("constipation")) parts.push("便秘もよくある副作用です。水分を1日1.5〜2L目安にしっかり摂り、食物繊維（野菜・きのこ・海藻・もち麦など）とヨーグルトなどの発酵食品を意識しましょう。数日続いてつらい場合は医師・薬剤師に相談を。");
+    if (symptoms.includes("diarrhea")) parts.push("お腹がゆるい時は、脂っこい物・乳製品・冷たい飲み物を控え、消化の良いもの（おかゆ・うどん・スープ）と水分補給を。続く場合は医師に相談してください。");
+    if (symptoms.includes("fatigue")) parts.push("だるさやふらつきは、食事量が減りすぎてエネルギーや水分が不足しているサインのことがあります。少量でも栄養の摂れるもの（卵・ヨーグルト・バナナ・スープ）をこまめに。症状が強い場合は医療機関へ。");
+    if (symptoms.includes("hypo")) parts.push("⚠️ 冷や汗・手の震え・強い空腹感・動悸は低血糖のサインの可能性があります。すぐにブドウ糖や糖分（ジュースなど）を摂り、症状が続く場合は医療機関に連絡してください。特に他の糖尿病薬を併用している方は要注意です。");
+    if (symptoms.includes("stomach")) parts.push("胃の不快感がある時は、1回量を減らしてゆっくり食べる・脂っこい物を避けるのが基本です。強い腹痛が続く場合は膵炎などの可能性もゼロではないため、我慢せず受診してください。");
+    if (type === "体調") {
+      parts.push("記録ありがとうございます。体調の変化はマンジャロの調整に重要な情報なので、次の診察時に医師に伝えてくださいね。");
+      return parts.join("\n\n");
+    }
+  }
+
+  /* --- 食事内容の分析 --- */
+  const has = {};
+  for (const [key, list] of Object.entries(KW)) has[key] = hit(text, list);
+
+  const good = [];
+  const caution = [];
+
+  if (has.protein) good.push("タンパク質が摂れているのはとても良いです。マンジャロで食欲が落ちている時期は筋肉が減りやすいので、毎食のタンパク質が減量成功のカギです");
+  if (has.veg) good.push("野菜・汁物が入っているのも◎。食物繊維は血糖の急上昇を抑え、便秘予防にもなります");
+  if (has.light) good.push("食欲が落ちている時に無理せず食べられる量にしたのは正しい判断です。ただし、タンパク質と水分だけは最低限キープしましょう");
+
+  if (has.fried || has.heavy) caution.push("揚げ物やこってりした食事は、マンジャロ使用中は胃もたれ・吐き気が出やすくなります。頻度を減らすか、量を半分にするのがおすすめです");
+  if (has.sweet) caution.push("甘いものは血糖値と中性脂肪に影響しやすいので、食べるなら食後すぐ・少量に。空腹時の単独おやつは避けましょう");
+  if (has.alcohol) caution.push("アルコールはマンジャロ使用中、低血糖や胃腸症状を悪化させることがあります。量は控えめに、空腹での飲酒は避けてください");
+  if (has.carb && !has.protein && !has.veg) caution.push("糖質が中心の食事になっています。次の食事でタンパク質と野菜を足してバランスを取りましょう");
+
+  /* --- 血液検査との連携 --- */
+  const b = latestBlood();
+  const bloodNotes = [];
+  if (b) {
+    const f = bloodFindings(b);
+    const fKeys = f.map(x => x.key);
+    if ((has.sweet || has.carb) && (fKeys.includes("hba1c") || fKeys.includes("glucose"))) bloodNotes.push("直近の検査でHbA1c・血糖が高めなので、糖質・甘い物は特に「量と順番」を意識しましょう（野菜→タンパク質→糖質の順）");
+    if ((has.fried || has.heavy) && (fKeys.includes("ldl") || fKeys.includes("liver"))) bloodNotes.push("検査でLDLまたは肝機能が高めと出ています。揚げ物・脂身は今は特に控えめが安心です");
+    if (has.alcohol && (fKeys.includes("ggtp") || fKeys.includes("tg") || fKeys.includes("liver"))) bloodNotes.push("検査でγ-GTP・中性脂肪・肝機能のいずれかが高めです。アルコールは休肝日を作って頻度から減らしていきましょう");
+    if (has.sweet && fKeys.includes("tg")) bloodNotes.push("中性脂肪が高めなので、甘い物・果物の量は意識して減らすと数値が動きやすいです");
+  }
+
+  /* --- 次の食事の提案 --- */
+  let nextMeal;
+  if (has.light || symptoms.includes("nausea")) nextMeal = pick(NEXT_MEAL.light) + "など、消化が良くタンパク質が摂れるもの";
+  else if (!has.protein) nextMeal = pick(NEXT_MEAL.protein) + "などでタンパク質を補うもの";
+  else if (!has.veg) nextMeal = pick(NEXT_MEAL.veg) + "などで野菜・食物繊維を足すもの";
+  else if (has.fried || has.heavy || has.sweet) nextMeal = "和定食スタイル（焼き魚＋小鉢＋味噌汁、ご飯少なめ）で胃腸を休ませるメニュー";
+  else nextMeal = "今回と同じバランスでOK。" + pick(NEXT_MEAL.veg) + "を足すとさらに良いです";
+
+  /* --- 文章を組み立て --- */
+  let head = `${type}の記録、ありがとうございます！`;
+  parts.unshift(head);
+  if (good.length) parts.push("👍 " + good.join("。") + "。");
+  if (caution.length) parts.push("💡 " + caution.join("。") + "。");
+  if (bloodNotes.length) parts.push("🩸 " + bloodNotes.join("。") + "。");
+  parts.push(`🍽 次の食事のおすすめ: ${nextMeal}。`);
+
+  if (!good.length && !caution.length) {
+    parts.push("内容を具体的に書いてもらえると（例:「鶏の唐揚げ定食、ご飯大盛り」）、より的確なアドバイスができます。");
+  }
+  return parts.join("\n\n");
+}
+
+/* ========== 献立プラン ========== */
+const RECIPES = {
+  breakfast: [
+    { name: "納豆と卵かけご飯（ご飯少なめ）＋味噌汁", items: ["納豆", "卵", "ご飯", "味噌", "豆腐"], tags: ["soy"] },
+    { name: "ヨーグルト＋バナナ＋ゆで卵", items: ["ヨーグルト", "バナナ", "卵"], tags: ["light"] },
+    { name: "オートミールのお粥＋温泉卵＋梅干し", items: ["オートミール", "卵", "梅干し"], tags: ["light", "lowcarb"] },
+    { name: "全粒粉トースト＋チーズ＋トマト", items: ["全粒粉パン", "チーズ", "トマト"], tags: [] },
+    { name: "豆腐と卵の雑炊", items: ["豆腐", "卵", "ご飯", "長ねぎ"], tags: ["soy", "light"] },
+    { name: "しらすおろし＋ご飯少なめ＋わかめ味噌汁", items: ["しらす", "大根", "ご飯", "わかめ", "味噌"], tags: ["fish"] },
+    { name: "プロテイン＋バナナ＋素焼きナッツ少量", items: ["プロテイン", "バナナ", "ミックスナッツ"], tags: ["light"] }
+  ],
+  lunch: [
+    { name: "サラダチキンと野菜たっぷりサラダ＋おにぎり1個", items: ["サラダチキン", "レタス", "トマト", "おにぎり用ご飯"], tags: [] },
+    { name: "鮭の塩焼き定食（ご飯少なめ）", items: ["生鮭", "ご飯", "味噌", "小松菜"], tags: ["fish"] },
+    { name: "豆腐と鶏そぼろの丼（ご飯少なめ）", items: ["豆腐", "鶏ひき肉", "ご飯", "長ねぎ"], tags: ["soy"] },
+    { name: "鶏むね肉と野菜のスープ＋全粒粉パン", items: ["鶏むね肉", "キャベツ", "にんじん", "全粒粉パン"], tags: ["light"] },
+    { name: "ツナと豆のサラダ＋ゆで卵", items: ["ツナ缶", "ミックスビーンズ", "卵", "レタス"], tags: ["fish", "soy", "lowcarb"] },
+    { name: "わかめそば＋温泉卵", items: ["そば", "わかめ", "卵"], tags: ["light"] },
+    { name: "さば缶ときゅうりの和え物＋おにぎり1個", items: ["さば缶", "きゅうり", "おにぎり用ご飯"], tags: ["fish"] }
+  ],
+  dinner: [
+    { name: "鶏むね肉のグリル＋蒸しブロッコリー", items: ["鶏むね肉", "ブロッコリー", "パプリカ"], tags: ["lowcarb"] },
+    { name: "鮭ときのこのホイル焼き", items: ["生鮭", "しめじ", "えのき", "玉ねぎ"], tags: ["fish", "lowcarb"] },
+    { name: "豚もも肉の冷しゃぶサラダ", items: ["豚もも肉", "レタス", "トマト", "ポン酢"], tags: [] },
+    { name: "豆腐ハンバーグ＋付け合わせ野菜", items: ["豆腐", "鶏ひき肉", "玉ねぎ", "ブロッコリー"], tags: ["soy"] },
+    { name: "さばの塩焼き＋ほうれん草のおひたし＋ひじき煮", items: ["さば", "ほうれん草", "ひじき"], tags: ["fish"] },
+    { name: "鶏と白菜のあっさり鍋", items: ["鶏もも肉", "白菜", "しめじ", "豆腐"], tags: ["light"] },
+    { name: "えびとチンゲン菜の中華風炒め（油控えめ）", items: ["えび", "チンゲン菜", "きのこ"], tags: ["lowcarb"] },
+    { name: "たらと野菜の蒸し煮", items: ["たら", "キャベツ", "にんじん"], tags: ["fish", "light"] }
+  ]
+};
+const DAY_NAMES = ["日", "月", "火", "水", "木", "金", "土"];
+
+function pickRecipes(pool, count, preferTags) {
+  // preferTagsに合うものを優先しつつ、重複なしでcount件選ぶ
+  const preferred = preferTags.length ? pool.filter(r => r.tags.some(t => preferTags.includes(t))) : [];
+  const shuffled = arr => [...arr].sort(() => Math.random() - 0.5);
+  const result = [];
+  for (const r of shuffled(preferred)) { if (result.length < count) result.push(r); }
+  for (const r of shuffled(pool)) {
+    if (result.length >= count) break;
+    if (!result.includes(r)) result.push(r);
+  }
+  while (result.length < count) result.push(pool[Math.floor(Math.random() * pool.length)]);
+  return shuffled(result);
+}
+
+function generateMealPlan() {
+  const b = latestBlood();
+  const findings = b ? bloodFindings(b) : [];
+  const fKeys = findings.map(x => x.key);
+  const preferTags = [];
+  const notes = [];
+  if (fKeys.includes("ldl") || fKeys.includes("liver")) { preferTags.push("fish", "soy"); notes.push("LDL・肝機能が高めのため、青魚・大豆製品を多めにしています。"); }
+  if (fKeys.includes("hba1c") || fKeys.includes("glucose")) { preferTags.push("lowcarb"); notes.push("血糖・HbA1cが高めのため、ご飯は毎食少なめ（100g目安）にしてください。"); }
+  if (fKeys.includes("tg")) notes.push("中性脂肪が高めのため、間食の甘い物・アルコールは控えめに。");
+  if (fKeys.includes("ua")) notes.push("尿酸値が高めのため、青魚・レバーの食べ過ぎに注意し、水分を多めに摂ってください。");
+  if (fKeys.includes("kidney")) notes.push("⚠️ eGFRが低めです。タンパク質量はこの献立のまま自己判断で増やさず、必ず主治医・管理栄養士に相談してください。");
+  notes.push("マンジャロで食欲がない日は、無理に完食せず、タンパク質のおかずと水分を優先してください。");
+
+  const breakfasts = pickRecipes(RECIPES.breakfast, 7, preferTags);
+  const lunches = pickRecipes(RECIPES.lunch, 7, preferTags);
+  const dinners = pickRecipes(RECIPES.dinner, 7, preferTags);
+
+  const days = [];
+  const start = new Date();
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(start.getTime() + i * 86400000);
+    days.push({
+      label: (d.getMonth() + 1) + "/" + d.getDate() + " (" + DAY_NAMES[d.getDay()] + ")",
+      b: breakfasts[i], l: lunches[i], d: dinners[i]
+    });
+  }
+  db.mealPlan = { created: today(), notes, days };
+  save();
+  renderMealPlan();
+  addBotMsg("1週間の献立プランを作成しました。「献立」タブで確認できます。買い物リストも自動で作ってあります🍳");
+}
+
+function renderMealPlan() {
+  const tableEl = document.getElementById("mealPlanTable");
+  const notesEl = document.getElementById("mealPlanNotes");
+  const listEl = document.getElementById("shoppingList");
+  const plan = db.mealPlan;
+  if (!plan) {
+    tableEl.innerHTML = "";
+    notesEl.textContent = "";
+    listEl.innerHTML = '<p class="note">献立を作成すると、ここに買い物リストが表示されます。</p>';
+    return;
+  }
+  notesEl.textContent = plan.notes.map(n => "・" + n).join("\n");
+  let html = "<table><tr><th>日付</th><th>朝食</th><th>昼食</th><th>夕食</th></tr>";
+  plan.days.forEach(day => {
+    html += `<tr><td style="white-space:nowrap;">${day.label}</td><td>${day.b.name}</td><td>${day.l.name}</td><td>${day.d.name}</td></tr>`;
+  });
+  html += "</table>";
+  tableEl.innerHTML = html;
+
+  // 買い物リスト（材料の集計）
+  const counts = {};
+  plan.days.forEach(day => [day.b, day.l, day.d].forEach(r => r.items.forEach(it => { counts[it] = (counts[it] || 0) + 1; })));
+  const items = Object.entries(counts).sort((a, b2) => b2[1] - a[1]);
+  listEl.innerHTML = "<ul style='padding-left:20px; font-size:14px;'>" +
+    items.map(([it, c]) => `<li>${it}（${c}食分）</li>`).join("") + "</ul>";
+}
+
+function shoppingListText() {
+  if (!db.mealPlan) return "";
+  const counts = {};
+  db.mealPlan.days.forEach(day => [day.b, day.l, day.d].forEach(r => r.items.forEach(it => { counts[it] = (counts[it] || 0) + 1; })));
+  return Object.keys(counts).join("、");
+}
+
+/* ========== AI連携（Gemini / Claude 切り替え） ========== */
+function loadAiConfig() {
+  let cfg = { provider: "gemini", geminiKey: "", claudeKey: "" };
+  try {
+    const raw = localStorage.getItem(API_KEY_STORE);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === "object") cfg = Object.assign(cfg, parsed);
+      else if (typeof parsed === "string") cfg.claudeKey = parsed; // 旧形式（Claudeキーのみ）からの移行
+    }
+  } catch (e) {
+    // 旧形式は生文字列でJSONとして読めない場合がある
+    const raw = localStorage.getItem(API_KEY_STORE);
+    if (raw) cfg.claudeKey = raw;
+  }
+  return cfg;
+}
+function saveAiConfig(cfg) { localStorage.setItem(API_KEY_STORE, JSON.stringify(cfg)); }
+function currentProvider() { return document.getElementById("aiProvider").value; }
+
+function saveApiKey() {
+  const v = document.getElementById("apiKeyInput").value.trim();
+  if (!v) { alert("APIキーを入力してください"); return; }
+  const cfg = loadAiConfig();
+  cfg.provider = currentProvider();
+  if (cfg.provider === "gemini") cfg.geminiKey = v; else cfg.claudeKey = v;
+  saveAiConfig(cfg);
+  document.getElementById("apiKeyInput").value = "";
+  renderApiKeyStatus();
+  alert("APIキーを保存しました");
+}
+function clearApiKey() {
+  const cfg = loadAiConfig();
+  cfg.provider = currentProvider();
+  if (cfg.provider === "gemini") cfg.geminiKey = ""; else cfg.claudeKey = "";
+  saveAiConfig(cfg);
+  renderApiKeyStatus();
+}
+function renderApiKeyStatus() {
+  const cfg = loadAiConfig();
+  const sel = document.getElementById("aiProvider");
+  // 初期表示時は保存済みのプロバイダを反映
+  if (!sel.dataset.touched) { sel.value = cfg.provider; sel.dataset.touched = "1"; }
+  const provider = sel.value;
+  cfg.provider = provider;
+  saveAiConfig(cfg);
+  const key = provider === "gemini" ? cfg.geminiKey : cfg.claudeKey;
+  document.getElementById("apiKeyStatus").textContent = key ? "✅ 設定済み" : "未設定";
+  document.getElementById("geminiGuide").style.display = provider === "gemini" ? "block" : "none";
+  document.getElementById("claudeGuide").style.display = provider === "claude" ? "block" : "none";
+}
+
+function resizeImage(file, maxEdge = 1568) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, maxEdge / Math.max(img.width, img.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL("image/jpeg", 0.85).split(",")[1]);
+      URL.revokeObjectURL(img.src);
+    };
+    img.onerror = () => reject(new Error("画像を読み込めませんでした"));
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+async function callAIWithImage(prompt, imageBase64, claudeSchema, geminiSchema) {
+  const cfg = loadAiConfig();
+  const provider = cfg.provider || "gemini";
+  const apiKey = provider === "gemini" ? cfg.geminiKey : cfg.claudeKey;
+  if (!apiKey) throw new Error("APIキーが未設定です。「基本データ」タブの「AI設定」でAPIキーを保存してください（Geminiなら無料で取得できます）。");
+
+  let res;
+  if (provider === "gemini") {
+    const body = {
+      contents: [{
+        parts: [
+          { inline_data: { mime_type: "image/jpeg", data: imageBase64 } },
+          { text: prompt }
+        ]
+      }],
+      generationConfig: {
+        response_mime_type: "application/json",
+        response_schema: geminiSchema
+      }
+    };
+    res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent", {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-goog-api-key": apiKey },
+      body: JSON.stringify(body)
+    });
+    if (!res.ok) {
+      if (res.status === 400 || res.status === 403) throw new Error("Gemini APIキーが無効のようです。キーを確認してください。");
+      if (res.status === 429) throw new Error("Geminiの無料枠の上限に達した可能性があります。明日また試すか、少し待ってから再試行してください。");
+      let detail = "";
+      try { detail = (await res.json()).error?.message || ""; } catch (e) { /* ignore */ }
+      throw new Error(`AI解析に失敗しました (HTTP ${res.status}) ${detail}`);
+    }
+    const data = await res.json();
+    const text = (data.candidates?.[0]?.content?.parts || []).map(p => p.text || "").join("");
+    if (!text) throw new Error("AIから回答が得られませんでした。もう一度お試しください。");
+    return JSON.parse(text);
+  }
+
+  // Claude
+  const body = {
+    model: "claude-opus-4-8",
+    max_tokens: 4096,
+    messages: [{
+      role: "user",
+      content: [
+        { type: "image", source: { type: "base64", media_type: "image/jpeg", data: imageBase64 } },
+        { type: "text", text: prompt }
+      ]
+    }],
+    output_config: { format: { type: "json_schema", schema: claudeSchema } }
+  };
+  res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true"
+    },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) {
+    if (res.status === 401) throw new Error("Claude APIキーが無効です。キーを確認してください。");
+    if (res.status === 429) throw new Error("利用制限に達しました。少し待ってから再試行してください。");
+    let detail = "";
+    try { detail = (await res.json()).error?.message || ""; } catch (e) { /* ignore */ }
+    throw new Error(`AI解析に失敗しました (HTTP ${res.status}) ${detail}`);
+  }
+  const data = await res.json();
+  const text = data.content.filter(c => c.type === "text").map(c => c.text).join("");
+  return JSON.parse(text);
+}
+
+const FRIDGE_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: ["recognized", "shopping_list", "advice"],
+  properties: {
+    recognized: { type: "array", items: { type: "string" }, description: "写真から判別できた食材・食品" },
+    shopping_list: { type: "array", items: { type: "string" }, description: "買い足すべきもの" },
+    advice: { type: "string", description: "ひとことアドバイス（日本語）" }
+  }
+};
+const FRIDGE_SCHEMA_GEMINI = {
+  type: "OBJECT",
+  required: ["recognized", "shopping_list", "advice"],
+  properties: {
+    recognized: { type: "ARRAY", items: { type: "STRING" } },
+    shopping_list: { type: "ARRAY", items: { type: "STRING" } },
+    advice: { type: "STRING" }
+  }
+};
+
+async function analyzeFridge() {
+  const fileInput = document.getElementById("fridgePhoto");
+  const status = document.getElementById("fridgeStatus");
+  const result = document.getElementById("fridgeResult");
+  const file = fileInput.files[0];
+  if (!file) { alert("冷蔵庫の写真を選択してください"); return; }
+  status.textContent = "解析中です…（10〜30秒ほどかかります）";
+  result.textContent = "";
+  try {
+    const img = await resizeImage(file);
+    const planItems = shoppingListText();
+    const prompt = `これは利用者の冷蔵庫の中身の写真です。マンジャロ（GLP-1/GIP薬）使用中のダイエットをサポートしています。
+1. 写真から判別できる食材・食品を挙げてください。
+2. ${planItems ? `今週の献立に必要な材料は「${planItems}」です。冷蔵庫に見当たらないものを買い物リストにしてください。` : "高タンパク・野菜中心のダイエット向け食事を作るために買い足すと良いものを買い物リストにしてください。"}
+3. 冷蔵庫の中身を踏まえたひとことアドバイスを日本語で添えてください。
+判別に自信がないものは無理に挙げず、見えている範囲で答えてください。`;
+    const r = await callAIWithImage(prompt, img, FRIDGE_SCHEMA, FRIDGE_SCHEMA_GEMINI);
+    status.textContent = "✅ 解析が完了しました";
+    result.textContent =
+      "🧊 冷蔵庫にあるもの:\n" + (r.recognized.length ? r.recognized.map(x => "・" + x).join("\n") : "（判別できませんでした）") +
+      "\n\n🛒 買い物リスト:\n" + (r.shopping_list.length ? r.shopping_list.map(x => "・" + x).join("\n") : "・買い足しは不要そうです！") +
+      "\n\n💡 " + r.advice;
+  } catch (e) {
+    status.textContent = "❌ " + e.message;
+  }
+}
+
+const BLOOD_SCHEMA = (() => {
+  const num = { anyOf: [{ type: "number" }, { type: "null" }] };
+  return {
+    type: "object",
+    additionalProperties: false,
+    required: ["date", "hba1c", "glucose", "ldl", "hdl", "tg", "ast", "alt", "ggtp", "cre", "egfr", "ua"],
+    properties: {
+      date: { anyOf: [{ type: "string" }, { type: "null" }], description: "検査日 YYYY-MM-DD形式。読み取れなければnull" },
+      hba1c: num, glucose: num, ldl: num, hdl: num, tg: num,
+      ast: num, alt: num, ggtp: num, cre: num, egfr: num, ua: num
+    }
+  };
+})();
+const BLOOD_SCHEMA_GEMINI = (() => {
+  const num = { type: "NUMBER", nullable: true };
+  return {
+    type: "OBJECT",
+    required: ["date", "hba1c", "glucose", "ldl", "hdl", "tg", "ast", "alt", "ggtp", "cre", "egfr", "ua"],
+    properties: {
+      date: { type: "STRING", nullable: true },
+      hba1c: num, glucose: num, ldl: num, hdl: num, tg: num,
+      ast: num, alt: num, ggtp: num, cre: num, egfr: num, ua: num
+    }
+  };
+})();
+
+async function analyzeBloodPhoto() {
+  const fileInput = document.getElementById("bloodPhoto");
+  const status = document.getElementById("bloodPhotoStatus");
+  const file = fileInput.files[0];
+  if (!file) { alert("検査結果の写真を選択してください"); return; }
+  status.textContent = "読み取り中です…（10〜30秒ほどかかります）";
+  try {
+    const img = await resizeImage(file, 2000); // 検査用紙の細かい文字向けに高めの解像度
+    const prompt = `これは日本の血液検査結果の用紙の写真です。以下の項目の数値を読み取ってください。
+- date: 検査日（採血日）。YYYY-MM-DD形式
+- hba1c: HbA1c (NGSP, %)
+- glucose: 血糖/グルコース (mg/dL)
+- ldl: LDLコレステロール (mg/dL)
+- hdl: HDLコレステロール (mg/dL)
+- tg: 中性脂肪/トリグリセリド (mg/dL)
+- ast: AST (GOT) (U/L)
+- alt: ALT (GPT) (U/L)
+- ggtp: γ-GTP (U/L)
+- cre: クレアチニン (mg/dL)
+- egfr: eGFR (mL/min/1.73m²)
+- ua: 尿酸 (mg/dL)
+用紙に記載がない項目や、はっきり読み取れない項目は必ずnullにしてください。推測で数値を埋めないでください。基準値の欄ではなく、本人の測定値の欄を読み取ってください。`;
+    const r = await callAIWithImage(prompt, img, BLOOD_SCHEMA, BLOOD_SCHEMA_GEMINI);
+    const map = { date: "bDate", hba1c: "bHba1c", glucose: "bGlucose", ldl: "bLdl", hdl: "bHdl", tg: "bTg", ast: "bAst", alt: "bAlt", ggtp: "bGgtp", cre: "bCre", egfr: "bEgfr", ua: "bUa" };
+    let filled = 0;
+    for (const [key, id] of Object.entries(map)) {
+      if (r[key] !== null && r[key] !== undefined) {
+        document.getElementById(id).value = r[key];
+        filled++;
+      }
+    }
+    if (filled === 0) {
+      status.textContent = "❌ 数値を読み取れませんでした。明るい場所でピントを合わせて撮り直してみてください。";
+    } else {
+      status.textContent = `✅ ${filled}項目を読み取り、下のフォームに入力しました。必ず原本と見比べて、正しければ「検査結果を保存」を押してください。`;
+      document.getElementById("bDate").scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  } catch (e) {
+    status.textContent = "❌ " + e.message;
+  }
+}
+
+/* ========== サマリー ========== */
+function renderSummary() {
+  const p = db.profile;
+  const w = latestWeight();
+  document.getElementById("sumWeight").textContent = w ? w.toFixed(1) : "--";
+  document.getElementById("sumDose").textContent = p.dose || "--";
+  document.getElementById("doseBadge").textContent = p.dose ? `マンジャロ ${p.dose}mg/週` : "投与量 未設定";
+  if (w && p.height) {
+    const bmi = w / Math.pow(p.height / 100, 2);
+    document.getElementById("sumBmi").textContent = bmi.toFixed(1);
+  } else document.getElementById("sumBmi").textContent = "--";
+  if (w && p.startWeight) {
+    const d = w - p.startWeight;
+    document.getElementById("sumDiff").textContent = (d > 0 ? "+" : "") + d.toFixed(1);
+  } else document.getElementById("sumDiff").textContent = "--";
+}
+
+/* ========== 体重グラフ・履歴 ========== */
+function renderWeightTable() {
+  const el = document.getElementById("weightTable");
+  if (db.weights.length === 0) { el.innerHTML = '<p class="note">体重の記録がまだありません。「記録・相談」タブから記録できます。</p>'; return; }
+  let html = "<table><tr><th>日付</th><th>体重 (kg)</th><th></th></tr>";
+  [...db.weights].reverse().slice(0, 30).forEach(w => {
+    const idx = db.weights.indexOf(w);
+    html += `<tr><td>${w.date}</td><td>${w.kg.toFixed(1)}</td><td><span class="del" onclick="deleteWeight(${idx})">削除</span></td></tr>`;
+  });
+  html += "</table>";
+  el.innerHTML = html;
+}
+function deleteWeight(i) {
+  if (!confirm("この記録を削除しますか？")) return;
+  db.weights.splice(i, 1);
+  save();
+  renderWeightTable();
+  renderSummary();
+  drawChart();
+}
+function drawChart() {
+  const canvas = document.getElementById("weightChart");
+  const ctx = canvas.getContext("2d");
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+  const data = db.weights;
+  if (data.length === 0) {
+    ctx.fillStyle = "#9bb0ad";
+    ctx.font = "14px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("体重を記録するとグラフが表示されます", W / 2, H / 2);
+    return;
+  }
+  const pad = { l: 44, r: 14, t: 14, b: 28 };
+  const vals = data.map(d => d.kg);
+  let min = Math.min(...vals), max = Math.max(...vals);
+  if (db.profile.targetWeight) min = Math.min(min, db.profile.targetWeight);
+  const range = Math.max(max - min, 2);
+  min -= range * 0.1; max += range * 0.1;
+
+  const x = i => data.length === 1 ? (pad.l + (W - pad.l - pad.r) / 2) : pad.l + (W - pad.l - pad.r) * (i / (data.length - 1));
+  const y = v => pad.t + (H - pad.t - pad.b) * (1 - (v - min) / (max - min));
+
+  // y軸目盛り
+  ctx.strokeStyle = "#e0e8e6"; ctx.fillStyle = "#8aa09d"; ctx.font = "10px sans-serif"; ctx.textAlign = "right";
+  for (let i = 0; i <= 4; i++) {
+    const v = min + (max - min) * (i / 4);
+    const yy = y(v);
+    ctx.beginPath(); ctx.moveTo(pad.l, yy); ctx.lineTo(W - pad.r, yy); ctx.stroke();
+    ctx.fillText(v.toFixed(1), pad.l - 6, yy + 3);
+  }
+  // 目標体重ライン
+  if (db.profile.targetWeight) {
+    const ty = y(db.profile.targetWeight);
+    ctx.strokeStyle = "#e9c46a"; ctx.setLineDash([5, 4]);
+    ctx.beginPath(); ctx.moveTo(pad.l, ty); ctx.lineTo(W - pad.r, ty); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = "#b3892b"; ctx.textAlign = "left";
+    ctx.fillText("目標 " + db.profile.targetWeight + "kg", pad.l + 4, ty - 4);
+  }
+  // 折れ線
+  ctx.strokeStyle = "#2a9d8f"; ctx.lineWidth = 2;
+  ctx.beginPath();
+  data.forEach((d, i) => { i === 0 ? ctx.moveTo(x(i), y(d.kg)) : ctx.lineTo(x(i), y(d.kg)); });
+  ctx.stroke();
+  // 点
+  ctx.fillStyle = "#2a9d8f";
+  data.forEach((d, i) => { ctx.beginPath(); ctx.arc(x(i), y(d.kg), 3.5, 0, Math.PI * 2); ctx.fill(); });
+  // x軸ラベル（最初・中間・最後）
+  ctx.fillStyle = "#8aa09d"; ctx.textAlign = "center"; ctx.font = "10px sans-serif";
+  const labelIdx = data.length <= 3 ? data.map((_, i) => i) : [0, Math.floor(data.length / 2), data.length - 1];
+  labelIdx.forEach(i => ctx.fillText(data[i].date.slice(5), x(i), H - 8));
+  ctx.lineWidth = 1;
+}
+
+/* ========== エクスポート / インポート ========== */
+function exportData() {
+  const blob = new Blob([JSON.stringify(db, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "mounjaro-support-backup-" + today() + ".json";
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+function importData(ev) {
+  const file = ev.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const parsed = JSON.parse(reader.result);
+      if (!parsed || typeof parsed !== "object") throw new Error("invalid");
+      db = Object.assign({ profile: {}, bloodTests: [], weights: [], chat: [], mealPlan: null }, parsed);
+      save();
+      initRender();
+      alert("データをインポートしました");
+    } catch (e) {
+      alert("ファイルの読み込みに失敗しました。エクスポートしたJSONファイルを指定してください。");
+    }
+  };
+  reader.readAsText(file);
+  ev.target.value = "";
+}
+
+/* ========== 初期化 ========== */
+function initRender() {
+  fillProfileForm();
+  renderSummary();
+  renderChat();
+  renderBloodList();
+  renderBloodAdvice();
+  renderWeightTable();
+  renderMealPlan();
+  renderApiKeyStatus();
+  drawChart();
+}
+load();
+if (db.chat.length === 0) {
+  db.chat.push({
+    role: "bot",
+    time: nowTime(),
+    text: "こんにちは！マンジャロを使ったダイエットを一緒にサポートするアプリです 🌱\n\nまずは「基本データ」タブで身長・体重・投与量を、「血液検査」タブで検査結果を登録してください。\n\nその後、このタブで毎日の食事や体調を送ってもらえれば、内容と検査値に合わせたアドバイスをお返しします。\n\n※ここでのアドバイスは一般的な参考情報です。薬の使い方や体調不良は必ず処方医に相談してくださいね。"
+  });
+  save();
+}
+initRender();
+</script>
+</body>
+</html>
