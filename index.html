@@ -185,7 +185,10 @@
     <h1>マンジャロ・ダイエットサポート</h1>
     <div class="sub">食事記録とアドバイスでダイエットを伴走します</div>
   </div>
-  <div id="doseBadge" class="badge"></div>
+  <div style="text-align:right;">
+    <div id="doseBadge" class="badge"></div>
+    <div id="saveStatus" class="sub" style="margin-top:4px;">💾 自動保存ON</div>
+  </div>
 </header>
 
 <nav>
@@ -197,6 +200,13 @@
 </nav>
 
 <div class="container">
+
+  <div id="originWarn" class="disclaimer" style="display:none; background:#fdecea; border-color:#f0c2bc; color:#8a3b30;">
+    ⚠️ <strong>この開き方では、入力したデータが保存されない・消えることがあります。</strong><br>
+    普段のご利用は、ブラウザでこちらの公式ページを開いてください（スマホは Safari で開いて「共有 → ホーム画面に追加」がおすすめ）:<br>
+    <a href="https://chovi55.github.io/mounjaro-support/" style="font-weight:bold;">https://chovi55.github.io/mounjaro-support/</a><br>
+    いまこの画面に入っているデータは、「推移・履歴」タブの「エクスポート」で書き出し、公式ページの「インポート」で引き継げます。
+  </div>
 
   <!-- ===== 記録・相談 ===== -->
   <div class="tab active" id="tab-chat">
@@ -393,7 +403,8 @@
     </div>
     <div class="card">
       <h2>データの保存・引っ越し</h2>
-      <p class="note" style="margin-bottom:10px;">データはこの端末のブラウザ内にのみ保存されます（外部送信なし）。バックアップや別端末への移行にはエクスポートを使ってください。</p>
+      <p class="note" style="margin-bottom:10px;">入力内容はその場で自動保存されます（画面右上に保存時刻を表示）。データはこの端末のブラウザ内にのみ保存されます（外部送信なし）。バックアップや別端末への移行にはエクスポートを使ってください。</p>
+      <button class="btn small" onclick="manualSave()">💾 今すぐ保存</button>
       <button class="btn ghost small" onclick="exportData()">エクスポート (JSON)</button>
       <button class="btn ghost small" onclick="document.getElementById('importFile').click()">インポート</button>
       <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
@@ -518,6 +529,15 @@ function load() {
 }
 function save() {
   localStorage.setItem(STORE_KEY, JSON.stringify(db));
+  const el = document.getElementById("saveStatus");
+  if (el) {
+    const d = new Date();
+    el.textContent = "💾 保存済み " + String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0") + ":" + String(d.getSeconds()).padStart(2, "0");
+  }
+}
+function manualSave() {
+  save();
+  alert("保存しました。\nデータはこの端末のブラウザ内に保存されています。\n機種変更やバックアップには「エクスポート」をお使いください。");
 }
 function today() {
   const d = new Date();
@@ -1382,6 +1402,13 @@ function initRender() {
   renderApiKeyStatus();
   drawChart();
 }
+// ブラウザに「このサイトのデータを消さないで」と依頼（対応ブラウザのみ）
+if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+// 保存が効かない可能性のある開き方（ファイル直開き・プレビュー等）では公式URLを案内
+if (location.protocol === "file:" || location.hostname === "localhost" || location.hostname === "127.0.0.1") {
+  document.getElementById("originWarn").style.display = "block";
+}
+
 load();
 if (db.chat.length === 0) {
   db.chat.push({
