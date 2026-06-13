@@ -298,6 +298,7 @@
     <div class="card">
       <h2>基本データ</h2>
       <div class="grid2">
+        <div style="grid-column:1 / -1;"><label>ニックネーム（呼びかけに使います・任意）</label><input type="text" id="pNickname" maxlength="20" placeholder="例: みき"></div>
         <div><label>身長 (cm)</label><input type="number" id="pHeight" step="0.1" placeholder="165"></div>
         <div><label>開始時体重 (kg)</label><input type="number" id="pStartWeight" step="0.1" placeholder="75"></div>
         <div><label>目標体重 (kg)</label><input type="number" id="pTargetWeight" step="0.1" placeholder="60"></div>
@@ -586,6 +587,7 @@ document.querySelectorAll("nav button").forEach(btn => {
 /* ========== 基本データ ========== */
 function saveProfile() {
   db.profile = {
+    nickname: document.getElementById("pNickname").value.trim() || null,
     height: parseFloat(document.getElementById("pHeight").value) || null,
     startWeight: parseFloat(document.getElementById("pStartWeight").value) || null,
     targetWeight: parseFloat(document.getElementById("pTargetWeight").value) || null,
@@ -597,11 +599,17 @@ function saveProfile() {
   };
   save();
   renderSummary();
-  addBotMsg("基本データを保存しました。" + (db.profile.dose ? `現在の投与量はマンジャロ ${db.profile.dose}mg（週1回）ですね。` : "") + "食事を記録すると、あなたに合わせたアドバイスをお返しします。");
+  addBotMsg(callName() + "基本データを保存しました。" + (db.profile.dose ? `現在の投与量はマンジャロ ${db.profile.dose}mg（週1回）ですね。` : "") + "食事を記録すると、あなたに合わせたアドバイスをお返しします。");
   alert("基本データを保存しました");
+}
+// 呼びかけ用: ニックネームがあれば「〇〇さん、」を返す（無ければ空文字）
+function callName() {
+  const n = db.profile && db.profile.nickname;
+  return n ? `${n}さん、` : "";
 }
 function fillProfileForm() {
   const p = db.profile;
+  if (p.nickname) document.getElementById("pNickname").value = p.nickname;
   if (p.height) document.getElementById("pHeight").value = p.height;
   if (p.startWeight) document.getElementById("pStartWeight").value = p.startWeight;
   if (p.targetWeight) document.getElementById("pTargetWeight").value = p.targetWeight;
@@ -648,7 +656,7 @@ function logWeight() {
   renderSummary();
   renderWeightTable();
 
-  let msg = `体重 ${v}kg を記録しました。`;
+  let msg = `${callName()}体重 ${v}kg を記録しました。`;
   if (hasFat || hasMuscle) {
     const parts2 = [];
     if (hasFat) parts2.push(`体脂肪率 ${fat}%`);
@@ -910,6 +918,7 @@ async function answerWithAI(text) {
   const p = db.profile;
   const b = latestBlood();
   const ctxParts = [];
+  if (p.nickname) ctxParts.push(`呼び名は「${p.nickname}さん」`);
   if (p.height && latestWeight()) ctxParts.push(`身長${p.height}cm・体重${latestWeight()}kg`);
   if (p.dose) ctxParts.push(`マンジャロ${p.dose}mg/週`);
   if (b) {
