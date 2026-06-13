@@ -216,14 +216,24 @@
         <div class="stat"><div class="v" id="sumWeight">--</div><div class="l">最新体重 (kg)</div></div>
         <div class="stat"><div class="v" id="sumBmi">--</div><div class="l">BMI</div></div>
         <div class="stat"><div class="v" id="sumDiff">--</div><div class="l">開始からの変化 (kg)</div></div>
+        <div class="stat"><div class="v" id="sumFat">--</div><div class="l">体脂肪率 (%)</div></div>
+        <div class="stat"><div class="v" id="sumMuscle">--</div><div class="l">筋肉量 (kg)</div></div>
         <div class="stat"><div class="v" id="sumDose">--</div><div class="l">マンジャロ (mg/週)</div></div>
       </div>
-      <div style="display:flex; gap:8px; margin-top:12px; align-items:flex-end;">
-        <div style="flex:1;">
-          <label>今日の体重を記録 (kg)</label>
+      <div style="display:flex; gap:8px; margin-top:12px; align-items:flex-end; flex-wrap:wrap;">
+        <div style="flex:1; min-width:90px;">
+          <label>今日の体重 (kg)</label>
           <input type="number" id="todayWeight" step="0.1" min="20" max="300" placeholder="例: 68.5">
         </div>
-        <button class="btn small" onclick="logWeight()">体重を記録</button>
+        <div style="flex:1; min-width:90px;">
+          <label>体脂肪率 (%)・任意</label>
+          <input type="number" id="todayFat" step="0.1" min="1" max="75" placeholder="例: 32.5">
+        </div>
+        <div style="flex:1; min-width:90px;">
+          <label>筋肉量 (kg)・任意</label>
+          <input type="number" id="todayMuscle" step="0.1" min="5" max="100" placeholder="例: 38.2">
+        </div>
+        <button class="btn small" onclick="logWeight()">記録する</button>
       </div>
     </div>
 
@@ -397,7 +407,12 @@
   <!-- ===== 推移・履歴 ===== -->
   <div class="tab" id="tab-history">
     <div class="card">
-      <h2>体重の推移</h2>
+      <h2>からだの推移</h2>
+      <div class="chips" id="chartMetricChips">
+        <button class="chip active" data-m="kg">体重</button>
+        <button class="chip" data-m="fat">体脂肪率</button>
+        <button class="chip" data-m="muscle">筋肉量</button>
+      </div>
       <canvas id="weightChart" width="700" height="220"></canvas>
       <div id="weightTable"></div>
     </div>
@@ -595,17 +610,51 @@ function latestWeight() {
 }
 function logWeight() {
   const v = parseFloat(document.getElementById("todayWeight").value);
-  if (!v || v < 20 || v > 300) { alert("体重を正しく入力してください"); return; }
+  const fat = parseFloat(document.getElementById("todayFat").value);
+  const muscle = parseFloat(document.getElementById("todayMuscle").value);
+  const hasFat = !isNaN(fat), hasMuscle = !isNaN(muscle);
+  if (!v || v < 20 || v > 300) { alert("体重を入力してください（体脂肪率・筋肉量は任意です）"); return; }
+  if (hasFat && (fat < 1 || fat > 75)) { alert("体脂肪率は1〜75%の範囲で入力してください"); return; }
+  if (hasMuscle && (muscle < 5 || muscle > 100)) { alert("筋肉量は5〜100kgの範囲で入力してください"); return; }
   const t = today();
+  // 比較用: 今日以外で直近の体脂肪率・筋肉量
+  const prevMuscle = [...db.weights].reverse().find(w => w.muscle != null && w.date !== t);
+  const prevFat = [...db.weights].reverse().find(w => w.fat != null && w.date !== t);
   const existing = db.weights.find(w => w.date === t);
-  if (existing) existing.kg = v; else db.weights.push({ date: t, kg: v });
+  if (existing) {
+    existing.kg = v;
+    if (hasFat) existing.fat = fat;
+    if (hasMuscle) existing.muscle = muscle;
+  } else {
+    const rec = { date: t, kg: v };
+    if (hasFat) rec.fat = fat;
+    if (hasMuscle) rec.muscle = muscle;
+    db.weights.push(rec);
+  }
   db.weights.sort((a, b) => a.date.localeCompare(b.date));
   save();
   document.getElementById("todayWeight").value = "";
+  document.getElementById("todayFat").value = "";
+  document.getElementById("todayMuscle").value = "";
   renderSummary();
   renderWeightTable();
 
   let msg = `体重 ${v}kg を記録しました。`;
+  if (hasFat || hasMuscle) {
+    const parts2 = [];
+    if (hasFat) parts2.push(`体脂肪率 ${fat}%`);
+    if (hasMuscle) parts2.push(`筋肉量 ${muscle}kg`);
+    msg += parts2.join("・") + " も記録しました。";
+  }
+  if (hasMuscle && prevMuscle) {
+    const md = muscle - prevMuscle.muscle;
+    if (md <= -0.5) msg += `\n⚠️ 前回（${prevMuscle.date}）より筋肉量が ${Math.abs(md).toFixed(1)}kg 減っています。減量中の筋肉減少を抑えるには、毎食のタンパク質（目安: 体重1kgあたり1.2g前後）と、ウォーキングや軽い筋トレが効果的です。`;
+    else if (md >= 0) msg += `\n💪 筋肉量がキープできています。体重を落としながら筋肉を守れているのは理想的なペースです！`;
+  }
+  if (hasFat && prevFat) {
+    const fd = fat - prevFat.fat;
+    if (fd <= -0.3) msg += `\n体脂肪率は前回より ${Math.abs(fd).toFixed(1)}% 下がっています。順調です。`;
+  }
   const p = db.profile;
   if (p.startWeight) {
     const diff = (v - p.startWeight).toFixed(1);
@@ -1284,16 +1333,20 @@ function renderSummary() {
     const d = w - p.startWeight;
     document.getElementById("sumDiff").textContent = (d > 0 ? "+" : "") + d.toFixed(1);
   } else document.getElementById("sumDiff").textContent = "--";
+  const lastFat = [...db.weights].reverse().find(x => x.fat != null);
+  const lastMuscle = [...db.weights].reverse().find(x => x.muscle != null);
+  document.getElementById("sumFat").textContent = lastFat ? lastFat.fat.toFixed(1) : "--";
+  document.getElementById("sumMuscle").textContent = lastMuscle ? lastMuscle.muscle.toFixed(1) : "--";
 }
 
 /* ========== 体重グラフ・履歴 ========== */
 function renderWeightTable() {
   const el = document.getElementById("weightTable");
   if (db.weights.length === 0) { el.innerHTML = '<p class="note">体重の記録がまだありません。「記録・相談」タブから記録できます。</p>'; return; }
-  let html = "<table><tr><th>日付</th><th>体重 (kg)</th><th></th></tr>";
+  let html = "<table><tr><th>日付</th><th>体重 (kg)</th><th>体脂肪率 (%)</th><th>筋肉量 (kg)</th><th></th></tr>";
   [...db.weights].reverse().slice(0, 30).forEach(w => {
     const idx = db.weights.indexOf(w);
-    html += `<tr><td>${w.date}</td><td>${w.kg.toFixed(1)}</td><td><span class="del" onclick="deleteWeight(${idx})">削除</span></td></tr>`;
+    html += `<tr><td>${w.date}</td><td>${w.kg.toFixed(1)}</td><td>${w.fat != null ? w.fat.toFixed(1) : "-"}</td><td>${w.muscle != null ? w.muscle.toFixed(1) : "-"}</td><td><span class="del" onclick="deleteWeight(${idx})">削除</span></td></tr>`;
   });
   html += "</table>";
   el.innerHTML = html;
@@ -1306,23 +1359,42 @@ function deleteWeight(i) {
   renderSummary();
   drawChart();
 }
+let chartMetric = "kg";
+const CHART_META = {
+  kg: { label: "体重", unit: "kg", color: "#2a9d8f", showTarget: true },
+  fat: { label: "体脂肪率", unit: "%", color: "#e76f51", showTarget: false },
+  muscle: { label: "筋肉量", unit: "kg", color: "#457b9d", showTarget: false }
+};
+document.querySelectorAll("#chartMetricChips .chip").forEach(c => {
+  c.addEventListener("click", () => {
+    document.querySelectorAll("#chartMetricChips .chip").forEach(x => x.classList.remove("active"));
+    c.classList.add("active");
+    chartMetric = c.dataset.m;
+    drawChart();
+  });
+});
+
 function drawChart() {
   const canvas = document.getElementById("weightChart");
   const ctx = canvas.getContext("2d");
   const W = canvas.width, H = canvas.height;
   ctx.clearRect(0, 0, W, H);
-  const data = db.weights;
+  const meta = CHART_META[chartMetric];
+  // 選んだ指標が記録されている日のみ抽出
+  const data = db.weights.filter(d => d[chartMetric] != null);
   if (data.length === 0) {
     ctx.fillStyle = "#9bb0ad";
     ctx.font = "14px sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText("体重を記録するとグラフが表示されます", W / 2, H / 2);
+    const hint = chartMetric === "kg" ? "体重を記録するとグラフが表示されます" : `${meta.label}を記録するとグラフが表示されます`;
+    ctx.fillText(hint, W / 2, H / 2);
     return;
   }
   const pad = { l: 44, r: 14, t: 14, b: 28 };
-  const vals = data.map(d => d.kg);
+  const vals = data.map(d => d[chartMetric]);
   let min = Math.min(...vals), max = Math.max(...vals);
-  if (db.profile.targetWeight) min = Math.min(min, db.profile.targetWeight);
+  const showTarget = meta.showTarget && db.profile.targetWeight;
+  if (showTarget) min = Math.min(min, db.profile.targetWeight);
   const range = Math.max(max - min, 2);
   min -= range * 0.1; max += range * 0.1;
 
@@ -1337,8 +1409,8 @@ function drawChart() {
     ctx.beginPath(); ctx.moveTo(pad.l, yy); ctx.lineTo(W - pad.r, yy); ctx.stroke();
     ctx.fillText(v.toFixed(1), pad.l - 6, yy + 3);
   }
-  // 目標体重ライン
-  if (db.profile.targetWeight) {
+  // 目標体重ライン（体重グラフのみ）
+  if (showTarget) {
     const ty = y(db.profile.targetWeight);
     ctx.strokeStyle = "#e9c46a"; ctx.setLineDash([5, 4]);
     ctx.beginPath(); ctx.moveTo(pad.l, ty); ctx.lineTo(W - pad.r, ty); ctx.stroke();
@@ -1347,17 +1419,20 @@ function drawChart() {
     ctx.fillText("目標 " + db.profile.targetWeight + "kg", pad.l + 4, ty - 4);
   }
   // 折れ線
-  ctx.strokeStyle = "#2a9d8f"; ctx.lineWidth = 2;
+  ctx.strokeStyle = meta.color; ctx.lineWidth = 2;
   ctx.beginPath();
-  data.forEach((d, i) => { i === 0 ? ctx.moveTo(x(i), y(d.kg)) : ctx.lineTo(x(i), y(d.kg)); });
+  data.forEach((d, i) => { i === 0 ? ctx.moveTo(x(i), y(d[chartMetric])) : ctx.lineTo(x(i), y(d[chartMetric])); });
   ctx.stroke();
   // 点
-  ctx.fillStyle = "#2a9d8f";
-  data.forEach((d, i) => { ctx.beginPath(); ctx.arc(x(i), y(d.kg), 3.5, 0, Math.PI * 2); ctx.fill(); });
+  ctx.fillStyle = meta.color;
+  data.forEach((d, i) => { ctx.beginPath(); ctx.arc(x(i), y(d[chartMetric]), 3.5, 0, Math.PI * 2); ctx.fill(); });
   // x軸ラベル（最初・中間・最後）
   ctx.fillStyle = "#8aa09d"; ctx.textAlign = "center"; ctx.font = "10px sans-serif";
   const labelIdx = data.length <= 3 ? data.map((_, i) => i) : [0, Math.floor(data.length / 2), data.length - 1];
   labelIdx.forEach(i => ctx.fillText(data[i].date.slice(5), x(i), H - 8));
+  // 単位表示
+  ctx.fillStyle = meta.color; ctx.textAlign = "left"; ctx.font = "11px sans-serif";
+  ctx.fillText(meta.label + " (" + meta.unit + ")", pad.l + 2, pad.t + 4);
   ctx.lineWidth = 1;
 }
 
