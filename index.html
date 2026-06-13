@@ -247,7 +247,7 @@
         <button class="chip" data-type="体調">体調メモ</button>
       </div>
       <div class="inputRow">
-        <textarea id="chatInput" placeholder="例: 昼はラーメンと餃子を食べました／少し吐き気があります"></textarea>
+        <textarea id="chatInput" placeholder="例: 昼はラーメンを食べました／玄米は1食何グラム？／少し吐き気があります"></textarea>
         <button class="btn" onclick="sendChat()">送信</button>
       </div>
 
@@ -838,12 +838,90 @@ function sendChat() {
   const input = document.getElementById("chatInput");
   const text = input.value.trim();
   if (!text) return;
+  // 食事チップ未選択で、質問っぽい文 → 質問として回答
+  if (!selectedType && looksLikeQuestion(text)) {
+    addMsg("user", `【質問】${text}`);
+    input.value = "";
+    answerQuestion(text);
+    return;
+  }
   const type = selectedType || (looksLikeSymptom(text) ? "体調" : guessMealType());
   addMsg("user", `【${type}】${text}`);
   input.value = "";
   document.querySelectorAll("#mealChips .chip").forEach(x => x.classList.remove("active"));
   selectedType = null;
   setTimeout(() => addBotMsg(generateAdvice(type, text)), 350);
+}
+
+/* ========== 質問への回答 ========== */
+function looksLikeQuestion(text) {
+  if (/[?？]/.test(text)) return true;
+  return /(教えて|何グラム|何ｇ|どれくらい|どのくらい|適正|適量|何kcal|何カロリー|いい(です)?か|大丈夫|していい|食べていい|飲んでいい|ますか|ですか|とは|の目安|べき|方がいい|ほうがいい)/.test(text);
+}
+
+// よくある質問（無料・即答）。kwのいずれかに一致したら回答。
+const QA_KB = [
+  { kw: ["玄米", "げんまい"], a: "玄米は1食あたり茶碗に軽く1杯＝約100〜150g（炊いた状態）が目安です。マンジャロ使用中で食欲が落ちている時期は100g前後でも十分。白米より食物繊維・ビタミンB群が多く血糖の上がり方も緩やかなので、ダイエット中の主食として向いています。よく噛んで、野菜やタンパク質を先に食べるとさらに◎。" },
+  { kw: ["白米", "ごはん", "ご飯", "お米"], a: "ご飯（白米）は1食あたり茶碗軽く1杯＝約100〜150gが目安です。減量中やHbA1c・血糖が高めの方は100g前後に抑えると安心。野菜→タンパク質→ご飯の順に食べると血糖の急上昇を抑えられます。玄米やもち麦に替えるのもおすすめです。" },
+  { kw: ["タンパク質", "たんぱく質", "プロテイン", "蛋白"], a: "1日のタンパク質は体重1kgあたり約1.0〜1.2gが目安です（体重60kgなら約60〜72g）。マンジャロ使用中は筋肉が落ちやすいので、毎食「手のひら1枚分」の肉・魚・卵・大豆製品を意識しましょう。食欲がない時はプロテインや豆腐・ヨーグルトで補うと楽です。" },
+  { kw: ["水分", "水", "お茶", "何リットル", "水を"], a: "水分は1日1.5〜2Lが目安です。マンジャロは便秘が出やすいので、こまめな水分補給が大切。甘いジュースではなく水・お茶・炭酸水で。脱水は吐き気やだるさの原因にもなります。" },
+  { kw: ["お酒", "アルコール", "ビール", "飲酒", "晩酌"], a: "アルコールはマンジャロ使用中、低血糖や胃腸症状を悪化させることがあります。飲むなら少量・食事と一緒に、空腹での飲酒は避けましょう。中性脂肪・肝機能が高めの方は休肝日を増やすのがおすすめです。糖質の少ない焼酎・ハイボールが比較的無難ですが、量はほどほどに。" },
+  { kw: ["間食", "おやつ", "お菓子", "甘い物", "甘いもの", "デザート"], a: "間食は1日200kcal以内が目安。選ぶなら高タンパク・低糖質のもの（素焼きナッツ少量、ギリシャヨーグルト、ゆで卵、チーズ、高カカオチョコ1〜2片）がおすすめ。空腹時の単独の甘い物は血糖を上げやすいので、食後すぐ少量にしましょう。" },
+  { kw: ["停滞期", "減らない", "落ちない", "停滞"], a: "体重が止まる停滞期は誰にでも訪れる正常な反応です。焦って食事を減らしすぎると筋肉が落ちて逆効果。タンパク質をしっかり摂り、水分・睡眠・軽い運動を続ければ、多くは2〜4週間で再び動き出します。体重だけでなく体脂肪率・筋肉量・見た目の変化も見ていきましょう。" },
+  { kw: ["リバウンド", "やめたら", "中止", "やめた後"], a: "マンジャロをやめると食欲が戻りやすく、急に元の食事量に戻すとリバウンドしやすくなります。使用中から「ご飯は茶碗軽く1杯」「タンパク質と野菜中心」といった習慣を身につけておくと、減薬・中止後も維持しやすいです。中止のタイミングは必ず主治医に相談してください。" },
+  { kw: ["運動", "筋トレ", "ウォーキング", "歩く", "有酸素"], a: "減量中の筋肉キープには「軽い筋トレ＋ウォーキング」が効果的です。まずは1日20〜30分の早歩きや、スクワット・かかと上げなどの自重トレからでOK。マンジャロで体調が優れない日は無理せず、できる範囲で動きましょう。" },
+  { kw: ["便秘", "お通じ", "出ない"], a: "便秘はマンジャロでよくある副作用です。①水分1.5〜2L、②食物繊維（野菜・きのこ・海藻・もち麦・オートミール）、③ヨーグルトなどの発酵食品、④適度な運動が基本。数日続いてつらい場合は医師・薬剤師に相談を。" },
+  { kw: ["吐き気", "むかむか", "気持ち悪"], a: "吐き気はマンジャロで比較的よくある症状です。①1回の量を減らして回数を分ける、②脂っこい物・甘い物を避ける、③食後すぐ横にならない、④水分をこまめに。嘔吐が続く・水分も摂れない時は早めに処方医へ連絡してください。" },
+  { kw: ["何キロカロリー", "カロリー", "何kcal", "摂取カロリー", "1日の"], a: "1日の摂取カロリーの目安は、減量中で女性なら約1200〜1500kcal、男性なら約1500〜1800kcalが一つの基準です（活動量で変動）。ただしマンジャロ使用中は食欲が落ちて自然と減ることが多いので、カロリーを厳密に削るより「タンパク質と野菜をしっかり摂る」ことを優先しましょう。極端な低カロリーは筋肉減少のもとです。" }
+];
+
+function answerQuestion(text) {
+  // まず無料の知識ベースで一致を探す
+  const hit = QA_KB.find(q => q.kw.some(k => text.includes(k)));
+  const cfg = (typeof loadAiConfig === "function") ? loadAiConfig() : { provider: "gemini", geminiKey: "", claudeKey: "" };
+  const hasKey = cfg.provider === "gemini" ? !!cfg.geminiKey : !!cfg.claudeKey;
+
+  // AI設定があれば、より具体的な回答をAIに任せる（知識ベースに無い質問にも対応）
+  if (hasKey) {
+    addBotMsg("🤖 AIに聞いています…少々お待ちください");
+    answerWithAI(text).then(ans => {
+      // 「お待ちください」の仮メッセージを置き換え
+      db.chat.pop();
+      addBotMsg(ans);
+    }).catch(err => {
+      db.chat.pop();
+      if (hit) addBotMsg(hit.a + "\n\n（AIでの詳しい回答に失敗しました: " + err.message + "）");
+      else addBotMsg("AIへの問い合わせに失敗しました（" + err.message + "）。\n「基本データ」タブのAI設定をご確認ください。");
+    });
+    return;
+  }
+
+  // AI未設定 → 知識ベースで回答、無ければ案内
+  setTimeout(() => {
+    if (hit) {
+      addBotMsg(hit.a + "\n\n※一般的な目安です。体調や治療方針は必ず主治医にご相談ください。");
+    } else {
+      addBotMsg("ご質問ありがとうございます。よくある質問（玄米・ご飯の量、タンパク質、水分、お酒、間食、停滞期、便秘、吐き気など）にはお答えできます。\n\nそれ以外の幅広い質問にもAIが答えられるようにできます。「基本データ」タブの『AI設定』で無料のGeminiキーを設定すると、どんな質問にも詳しくお答えします（図解ガイドあり）。");
+    }
+  }, 300);
+}
+
+async function answerWithAI(text) {
+  const p = db.profile;
+  const b = latestBlood();
+  const ctxParts = [];
+  if (p.height && latestWeight()) ctxParts.push(`身長${p.height}cm・体重${latestWeight()}kg`);
+  if (p.dose) ctxParts.push(`マンジャロ${p.dose}mg/週`);
+  if (b) {
+    const fk = bloodFindings(b).map(x => x.key);
+    if (fk.length) ctxParts.push(`直近の血液検査で注意の項目: ${fk.join(", ")}`);
+  }
+  const ctx = ctxParts.length ? `利用者の情報: ${ctxParts.join("、")}。` : "";
+  const prompt = `あなたはマンジャロ（GLP-1/GIP薬）を使ってダイエット中の人をサポートする、やさしい栄養アドバイザーです。${ctx}
+次の質問に、日本語で200〜300字程度で具体的に答えてください。数値の目安があれば示してください。マンジャロ使用中の視点（食欲低下・筋肉維持・胃腸症状）を踏まえてください。診断や薬の用量の指示はせず、必要なら「主治医に相談を」と添えてください。
+
+質問: ${text}`;
+  return await callAIText(prompt);
 }
 document.getElementById("chatInput").addEventListener("keydown", e => {
   if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) sendChat();
@@ -1130,6 +1208,52 @@ function resizeImage(file, maxEdge = 1568) {
     img.onerror = () => reject(new Error("画像を読み込めませんでした"));
     img.src = URL.createObjectURL(file);
   });
+}
+
+async function callAIText(prompt) {
+  const cfg = loadAiConfig();
+  const provider = cfg.provider || "gemini";
+  const apiKey = provider === "gemini" ? cfg.geminiKey : cfg.claudeKey;
+  if (!apiKey) throw new Error("APIキーが未設定です");
+  let res;
+  if (provider === "gemini") {
+    res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent", {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-goog-api-key": apiKey },
+      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+    });
+    if (!res.ok) {
+      if (res.status === 400 || res.status === 403) throw new Error("Gemini APIキーが無効のようです");
+      if (res.status === 429) throw new Error("Geminiの無料枠の上限に達した可能性があります");
+      throw new Error("HTTP " + res.status);
+    }
+    const data = await res.json();
+    const t = (data.candidates?.[0]?.content?.parts || []).map(p => p.text || "").join("");
+    if (!t) throw new Error("回答が得られませんでした");
+    return t.trim();
+  }
+  // Claude
+  res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true"
+    },
+    body: JSON.stringify({
+      model: "claude-opus-4-8",
+      max_tokens: 1024,
+      messages: [{ role: "user", content: prompt }]
+    })
+  });
+  if (!res.ok) {
+    if (res.status === 401) throw new Error("Claude APIキーが無効です");
+    if (res.status === 429) throw new Error("利用制限に達しました");
+    throw new Error("HTTP " + res.status);
+  }
+  const data = await res.json();
+  return data.content.filter(c => c.type === "text").map(c => c.text).join("").trim();
 }
 
 async function callAIWithImage(prompt, imageBase64List, claudeSchema, geminiSchema) {
