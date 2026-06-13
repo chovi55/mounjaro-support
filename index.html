@@ -810,7 +810,8 @@ function addBotMsg(text) { addMsg("bot", text); }
 function renderChat() {
   const log = document.getElementById("chatLog");
   log.innerHTML = "";
-  db.chat.forEach(m => {
+  // 新しい順（降順）で表示 — 一番上が最新
+  [...db.chat].reverse().forEach(m => {
     const d = document.createElement("div");
     d.className = "msg " + m.role;
     d.textContent = m.text;
@@ -820,7 +821,8 @@ function renderChat() {
     d.appendChild(t);
     log.appendChild(d);
   });
-  log.lastElementChild?.scrollIntoView({ block: "nearest" });
+  // 最新は先頭にあるので、入力欄付近（ログの先頭）が見えるようにする
+  log.firstElementChild?.scrollIntoView({ block: "nearest" });
 }
 
 function sendChat() {
