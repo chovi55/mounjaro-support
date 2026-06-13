@@ -250,6 +250,15 @@
         <textarea id="chatInput" placeholder="例: 昼はラーメンと餃子を食べました／少し吐き気があります"></textarea>
         <button class="btn" onclick="sendChat()">送信</button>
       </div>
+
+      <div style="margin-top:14px; border-top:1px dashed var(--border); padding-top:14px;">
+        <h3 style="font-size:13px; margin:0 0 6px;">📷 食事の写真をAIで分析（カロリー・栄養バランス）</h3>
+        <p class="note" style="margin:0 0 8px;">食べたものを撮って送ると、AIがカロリーの目安・栄養バランス・食べ過ぎ／不足／偏りを分析します。※「基本データ」タブのAI設定が必要です（無料のGeminiキーが使えます）。</p>
+        <input type="file" id="mealPhoto" accept="image/*">
+        <button class="btn small" style="margin-top:8px;" onclick="analyzeMealPhoto()">写真を分析する</button>
+        <div id="mealPhotoStatus" class="note" style="margin-top:8px;"></div>
+      </div>
+
       <div id="chatLog" style="margin-top:14px;"></div>
     </div>
 
@@ -1241,6 +1250,68 @@ async function analyzeFridge() {
       "🧊 冷蔵庫にあるもの:\n" + (r.recognized.length ? r.recognized.map(x => "・" + x).join("\n") : "（判別できませんでした）") +
       "\n\n🛒 買い物リスト:\n" + (r.shopping_list.length ? r.shopping_list.map(x => "・" + x).join("\n") : "・買い足しは不要そうです！") +
       "\n\n💡 " + r.advice;
+  } catch (e) {
+    status.textContent = "❌ " + e.message;
+  }
+}
+
+const MEAL_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: ["foods", "calories", "balance", "verdict", "advice"],
+  properties: {
+    foods: { type: "array", items: { type: "string" }, description: "写真から判別できた料理・食品" },
+    calories: { type: "integer", description: "推定総カロリー(kcal)。だいたいの目安でよい" },
+    balance: { type: "string", description: "炭水化物・タンパク質・脂質・野菜のバランスの簡単な説明" },
+    verdict: { type: "string", enum: ["適量", "食べ過ぎ", "少なすぎ", "偏りあり"], description: "総合判定" },
+    advice: { type: "string", description: "マンジャロ使用中のダイエット視点での具体的アドバイス(日本語)" }
+  }
+};
+const MEAL_SCHEMA_GEMINI = {
+  type: "OBJECT",
+  required: ["foods", "calories", "balance", "verdict", "advice"],
+  properties: {
+    foods: { type: "ARRAY", items: { type: "STRING" } },
+    calories: { type: "INTEGER" },
+    balance: { type: "STRING" },
+    verdict: { type: "STRING", enum: ["適量", "食べ過ぎ", "少なすぎ", "偏りあり"] },
+    advice: { type: "STRING" }
+  }
+};
+
+async function analyzeMealPhoto() {
+  const fileInput = document.getElementById("mealPhoto");
+  const status = document.getElementById("mealPhotoStatus");
+  const file = fileInput.files[0];
+  if (!file) { alert("食事の写真を選択してください"); return; }
+  status.textContent = "分析中です…（10〜30秒ほどかかります）";
+  try {
+    const img = await resizeImage(file);
+    const b = latestBlood();
+    const fKeys = b ? bloodFindings(b).map(x => x.key) : [];
+    const bloodHint = fKeys.length ? `この方の直近の血液検査では次が高め/注意です: ${fKeys.join(", ")}（hba1c/glucose=血糖, ldl/liver=脂質肝臓, tg=中性脂肪, ua=尿酸, kidney=腎臓）。該当する場合はその観点も助言に含めてください。` : "";
+    const prompt = `これは利用者が食べた食事の写真です。マンジャロ（GLP-1/GIP薬）使用中のダイエットをサポートしています。
+1. 写真に写っている料理・食品を挙げてください。
+2. 推定の総カロリー(kcal)をだいたいの目安で出してください。
+3. 炭水化物・タンパク質・脂質・野菜のバランスを簡単に説明してください。
+4. 総合判定を「適量」「食べ過ぎ」「少なすぎ」「偏りあり」から1つ選んでください。マンジャロ使用中は1食あたり概ね400〜600kcal・タンパク質と野菜中心が目安です。
+5. ダイエット視点で、次の食事や次回への具体的なアドバイスを日本語で添えてください。${bloodHint}
+判別に自信がない場合も、見える範囲で目安として答えてください（「正確な栄養計算ではなく目安」という前提でかまいません）。`;
+    const r = await callAIWithImage(prompt, img, MEAL_SCHEMA, MEAL_SCHEMA_GEMINI);
+    status.textContent = "✅ 分析が完了しました（下のやりとりに追加しました）";
+    fileInput.value = "";
+    const icon = { "適量": "✅", "食べ過ぎ": "⚠️", "少なすぎ": "⚠️", "偏りあり": "⚠️" }[r.verdict] || "🍽";
+    // ユーザー側の記録として写真分析を残す
+    addMsg("user", `【食事写真】${r.foods.join("、") || "食事を記録"}`);
+    addBotMsg(
+      `${icon} 食事の分析結果（AI・目安）\n\n` +
+      `🍽 内容: ${r.foods.join("、") || "（判別できませんでした）"}\n` +
+      `🔥 推定カロリー: 約${r.calories}kcal\n` +
+      `⚖️ バランス: ${r.balance}\n` +
+      `📊 判定: ${r.verdict}\n\n` +
+      `💡 ${r.advice}\n\n` +
+      `※AIによる目安です。正確な栄養計算ではありません。`
+    );
   } catch (e) {
     status.textContent = "❌ " + e.message;
   }
