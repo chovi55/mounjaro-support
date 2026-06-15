@@ -250,6 +250,7 @@
         <textarea id="chatInput" placeholder="例: 昼はラーメンを食べました／玄米は1食何グラム？／少し吐き気があります"></textarea>
         <button class="btn" onclick="sendChat()">送信</button>
       </div>
+      <div id="aiModeIndicator" class="note" style="margin-top:6px;"></div>
 
       <div style="margin-top:14px; border-top:1px dashed var(--border); padding-top:14px;">
         <h3 style="font-size:13px; margin:0 0 6px;">📷 食事の写真をAIで分析（カロリー・栄養バランス）</h3>
@@ -266,6 +267,7 @@
       ⚠️ このアプリは医療機器・医療サービスではなく、一般的な食事・生活習慣の参考情報を提示するものです。
       マンジャロの用量変更・体調不良（強い吐き気、嘔吐、腹痛、低血糖症状など）・治療方針については、必ず処方医・薬剤師に相談してください。
     </div>
+    <p class="note" style="text-align:center; margin-top:8px; opacity:.7;">バージョン 2026-06-15a</p>
   </div>
 
   <!-- ===== 献立 ===== -->
@@ -1253,6 +1255,22 @@ function renderApiKeyStatus() {
   document.getElementById("apiKeyStatus").textContent = key ? "✅ 設定済み" : "未設定";
   document.getElementById("geminiGuide").style.display = provider === "gemini" ? "block" : "none";
   document.getElementById("claudeGuide").style.display = provider === "claude" ? "block" : "none";
+  renderAiModeIndicator();
+}
+
+// チャット入力欄の下に、食事アドバイスがAIか無料ルールかを常時表示
+function renderAiModeIndicator() {
+  const el = document.getElementById("aiModeIndicator");
+  if (!el) return;
+  const cfg = loadAiConfig();
+  const provider = cfg.provider || "gemini";
+  const key = provider === "gemini" ? cfg.geminiKey : cfg.claudeKey;
+  const pname = provider === "gemini" ? "Gemini" : "Claude";
+  if (key) {
+    el.innerHTML = `🤖 食事アドバイス: <strong style="color:var(--primary-dark);">AI分析ON（${pname}）</strong>`;
+  } else {
+    el.innerHTML = `💬 食事アドバイス: 無料ルール（${pname}のキー未設定）　<a href="#" onclick="document.querySelector('nav button[data-tab=&quot;profile&quot;]').click();return false;">AI設定を開く</a>`;
+  }
 }
 
 function resizeImage(file, maxEdge = 1568) {
