@@ -858,7 +858,53 @@ function sendChat() {
   input.value = "";
   document.querySelectorAll("#mealChips .chip").forEach(x => x.classList.remove("active"));
   selectedType = null;
+  adviseMeal(type, text);
+}
+
+// 食事・体調へのアドバイス。AI設定があればAIが個別分析、無ければルールベース。
+function adviseMeal(type, text) {
+  const cfg = (typeof loadAiConfig === "function") ? loadAiConfig() : { provider: "gemini", geminiKey: "", claudeKey: "" };
+  const hasKey = cfg.provider === "gemini" ? !!cfg.geminiKey : !!cfg.claudeKey;
+  // 体調の相談はルールの定型対応が安全なので、症状検出時はルール優先
+  if (hasKey && type !== "体調") {
+    addBotMsg("🤖 内容を分析しています…");
+    adviseMealWithAI(type, text).then(ans => {
+      db.chat.pop();
+      addBotMsg(ans);
+    }).catch(err => {
+      db.chat.pop();
+      addBotMsg(generateAdvice(type, text) + "\n\n（AIでの詳しい分析に失敗しました: " + err.message + "）");
+    });
+    return;
+  }
   setTimeout(() => addBotMsg(generateAdvice(type, text)), 350);
+}
+
+async function adviseMealWithAI(type, text) {
+  const p = db.profile;
+  const b = latestBlood();
+  const ctxParts = [];
+  if (p.nickname) ctxParts.push(`呼び名は「${p.nickname}さん」`);
+  if (p.height && latestWeight()) ctxParts.push(`身長${p.height}cm・体重${latestWeight()}kg`);
+  if (p.targetWeight) ctxParts.push(`目標体重${p.targetWeight}kg`);
+  if (p.dose) ctxParts.push(`マンジャロ${p.dose}mg/週`);
+  if (b) {
+    const fk = bloodFindings(b).map(x => x.key);
+    if (fk.length) ctxParts.push(`直近の血液検査で注意の項目: ${fk.join(", ")}`);
+  }
+  const recentMeals = db.chat.filter(m => m.role === "user" && /^【(朝食|昼食|夕食|間食)】/.test(m.text)).slice(-4).map(m => m.text).join(" / ");
+  const ctx = ctxParts.length ? `利用者の情報: ${ctxParts.join("、")}。` : "";
+  const recent = recentMeals ? `直近の食事記録: ${recentMeals}。これも踏まえて1日の偏りがあれば指摘してください。` : "";
+  const prompt = `あなたはマンジャロ（GLP-1/GIP薬）使用中のダイエットを伴走する、やさしく具体的な管理栄養士です。${ctx}${recent}
+利用者が今回の【${type}】として「${text}」と報告しました。これに対して、毎回同じにならないよう、その内容に即した個別アドバイスを返してください。
+
+次の要素を、自然な日本語の短い文章（250〜350字）で、箇条書きを少し交えて返してください:
+1. このメニューの推定カロリーと栄養バランス（PFC＝タンパク質・脂質・炭水化物のどれが多い/少ないか）をざっくり一言で
+2. 良い点を具体的にほめる
+3. 食べ過ぎ・量が少なすぎ・栄養の偏り（特にタンパク質不足、野菜不足、糖質・脂質の摂りすぎ）があれば、その人の状況に合わせて指摘
+4. 「次の食事はこうすると良い」を具体的な料理名で1〜2案
+マンジャロ使用中の視点（食欲低下時は無理せずタンパク質と水分優先、筋肉維持、胃腸症状の出やすさ）を踏まえてください。診断や薬の用量指示はしないでください。${p.nickname ? `文頭で「${p.nickname}さん」と呼びかけてください。` : ""}`;
+  return await callAIText(prompt);
 }
 
 /* ========== 質問への回答 ========== */
@@ -1023,8 +1069,15 @@ function generateAdvice(type, text) {
   else if (has.fried || has.heavy || has.sweet) nextMeal = "和定食スタイル（焼き魚＋小鉢＋味噌汁、ご飯少なめ）で胃腸を休ませるメニュー";
   else nextMeal = "今回と同じバランスでOK。" + pick(NEXT_MEAL.veg) + "を足すとさらに良いです";
 
-  /* --- 文章を組み立て --- */
-  let head = `${type}の記録、ありがとうございます！`;
+  /* --- 文章を組み立て（毎回同じにならないよう挨拶を変える） --- */
+  const heads = [
+    `${type}の記録、ありがとうございます！`,
+    `${type}を記録しました。いいですね😊`,
+    `${type}、しっかり記録できました！`,
+    `${type}の報告ありがとうございます。見てみますね`,
+    `${type}、お疲れさまです🌱`
+  ];
+  let head = callName() + pick(heads);
   parts.unshift(head);
   if (good.length) parts.push("👍 " + good.join("。") + "。");
   if (caution.length) parts.push("💡 " + caution.join("。") + "。");
