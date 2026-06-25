@@ -221,8 +221,12 @@
         <div class="stat"><div class="v" id="sumDose">--</div><div class="l">マンジャロ (mg/週)</div></div>
       </div>
       <div style="display:flex; gap:8px; margin-top:12px; align-items:flex-end; flex-wrap:wrap;">
+        <div style="flex:1; min-width:120px;">
+          <label>日付（過去もOK）</label>
+          <input type="date" id="todayDate">
+        </div>
         <div style="flex:1; min-width:90px;">
-          <label>今日の体重 (kg)</label>
+          <label>体重 (kg)</label>
           <input type="number" id="todayWeight" step="0.1" min="20" max="300" placeholder="例: 68.5">
         </div>
         <div style="flex:1; min-width:90px;">
@@ -233,8 +237,10 @@
           <label>筋肉量 (kg)・任意</label>
           <input type="number" id="todayMuscle" step="0.1" min="5" max="100" placeholder="例: 38.2">
         </div>
-        <button class="btn small" onclick="logWeight()">記録する</button>
+        <button class="btn small" id="weightSaveBtn" onclick="logWeight()">記録する</button>
+        <button class="btn ghost small" id="weightEditCancel" style="display:none;" onclick="cancelWeightEdit()">やめる</button>
       </div>
+      <p class="note" style="margin-top:6px;">日付を変えれば過去の体重も登録できます。下の履歴の「編集」で記録の修正もできます。</p>
     </div>
 
     <div class="card">
@@ -267,7 +273,7 @@
       ⚠️ このアプリは医療機器・医療サービスではなく、一般的な食事・生活習慣の参考情報を提示するものです。
       マンジャロの用量変更・体調不良（強い吐き気、嘔吐、腹痛、低血糖症状など）・治療方針については、必ず処方医・薬剤師に相談してください。
     </div>
-    <p class="note" style="text-align:center; margin-top:8px; opacity:.7;">バージョン 2026-06-15a</p>
+    <p class="note" style="text-align:center; margin-top:8px; opacity:.7;">バージョン 2026-06-15b</p>
   </div>
 
   <!-- ===== 献立 ===== -->
@@ -627,6 +633,30 @@ function latestWeight() {
   if (db.weights.length === 0) return db.profile.startWeight || null;
   return db.weights[db.weights.length - 1].kg;
 }
+let editingWeightDate = null; // 編集中の元の日付（過去記録の修正用）
+
+function editWeight(i) {
+  const w = db.weights[i];
+  document.getElementById("todayDate").value = w.date;
+  document.getElementById("todayWeight").value = w.kg;
+  document.getElementById("todayFat").value = w.fat != null ? w.fat : "";
+  document.getElementById("todayMuscle").value = w.muscle != null ? w.muscle : "";
+  editingWeightDate = w.date;
+  document.getElementById("weightSaveBtn").textContent = "修正を保存";
+  document.getElementById("weightEditCancel").style.display = "inline-block";
+  document.querySelector('nav button[data-tab="chat"]').click();
+  document.getElementById("todayWeight").scrollIntoView({ behavior: "smooth", block: "center" });
+}
+function cancelWeightEdit() {
+  editingWeightDate = null;
+  document.getElementById("todayWeight").value = "";
+  document.getElementById("todayFat").value = "";
+  document.getElementById("todayMuscle").value = "";
+  document.getElementById("todayDate").value = today();
+  document.getElementById("weightSaveBtn").textContent = "記録する";
+  document.getElementById("weightEditCancel").style.display = "none";
+}
+
 function logWeight() {
   const v = parseFloat(document.getElementById("todayWeight").value);
   const fat = parseFloat(document.getElementById("todayFat").value);
@@ -635,15 +665,22 @@ function logWeight() {
   if (!v || v < 20 || v > 300) { alert("体重を入力してください（体脂肪率・筋肉量は任意です）"); return; }
   if (hasFat && (fat < 1 || fat > 75)) { alert("体脂肪率は1〜75%の範囲で入力してください"); return; }
   if (hasMuscle && (muscle < 5 || muscle > 100)) { alert("筋肉量は5〜100kgの範囲で入力してください"); return; }
-  const t = today();
-  // 比較用: 今日以外で直近の体脂肪率・筋肉量
+  const t = document.getElementById("todayDate").value || today();
+  const isToday = (t === today());
+  // 編集で日付を変更した場合、元の記録を削除（重複防止）
+  if (editingWeightDate && editingWeightDate !== t) {
+    const oi = db.weights.findIndex(w => w.date === editingWeightDate);
+    if (oi >= 0) db.weights.splice(oi, 1);
+  }
+  // 比較用: この日付以外で直近の体脂肪率・筋肉量
   const prevMuscle = [...db.weights].reverse().find(w => w.muscle != null && w.date !== t);
   const prevFat = [...db.weights].reverse().find(w => w.fat != null && w.date !== t);
+  const wasEditing = editingWeightDate !== null;
   const existing = db.weights.find(w => w.date === t);
   if (existing) {
     existing.kg = v;
-    if (hasFat) existing.fat = fat;
-    if (hasMuscle) existing.muscle = muscle;
+    existing.fat = hasFat ? fat : undefined;
+    existing.muscle = hasMuscle ? muscle : undefined;
   } else {
     const rec = { date: t, kg: v };
     if (hasFat) rec.fat = fat;
@@ -652,11 +689,20 @@ function logWeight() {
   }
   db.weights.sort((a, b) => a.date.localeCompare(b.date));
   save();
-  document.getElementById("todayWeight").value = "";
-  document.getElementById("todayFat").value = "";
-  document.getElementById("todayMuscle").value = "";
+  cancelWeightEdit();
   renderSummary();
   renderWeightTable();
+  drawChart();
+
+  // 過去日の入力・編集は簡潔なメッセージ
+  if (!isToday || wasEditing) {
+    let m2 = `${callName()}${t} の記録を保存しました（体重 ${v}kg`;
+    if (hasFat) m2 += `・体脂肪率 ${fat}%`;
+    if (hasMuscle) m2 += `・筋肉量 ${muscle}kg`;
+    m2 += "）。グラフと履歴に反映しました。";
+    addBotMsg(m2);
+    return;
+  }
 
   let msg = `${callName()}体重 ${v}kg を記録しました。`;
   if (hasFat || hasMuscle) {
@@ -1623,7 +1669,7 @@ function renderWeightTable() {
   let html = "<table><tr><th>日付</th><th>体重 (kg)</th><th>体脂肪率 (%)</th><th>筋肉量 (kg)</th><th></th></tr>";
   [...db.weights].reverse().slice(0, 30).forEach(w => {
     const idx = db.weights.indexOf(w);
-    html += `<tr><td>${w.date}</td><td>${w.kg.toFixed(1)}</td><td>${w.fat != null ? w.fat.toFixed(1) : "-"}</td><td>${w.muscle != null ? w.muscle.toFixed(1) : "-"}</td><td><span class="del" onclick="deleteWeight(${idx})">削除</span></td></tr>`;
+    html += `<tr><td>${w.date}</td><td>${w.kg.toFixed(1)}</td><td>${w.fat != null ? w.fat.toFixed(1) : "-"}</td><td>${w.muscle != null ? w.muscle.toFixed(1) : "-"}</td><td><span class="del" style="color:var(--primary-dark);" onclick="editWeight(${idx})">編集</span>　<span class="del" onclick="deleteWeight(${idx})">削除</span></td></tr>`;
   });
   html += "</table>";
   el.innerHTML = html;
@@ -1632,6 +1678,7 @@ function deleteWeight(i) {
   if (!confirm("この記録を削除しますか？")) return;
   db.weights.splice(i, 1);
   save();
+  cancelWeightEdit();
   renderWeightTable();
   renderSummary();
   drawChart();
@@ -1744,6 +1791,8 @@ function importData(ev) {
 
 /* ========== 初期化 ========== */
 function initRender() {
+  const dateEl = document.getElementById("todayDate");
+  if (dateEl && !dateEl.value) dateEl.value = today();
   fillProfileForm();
   renderSummary();
   renderChat();
